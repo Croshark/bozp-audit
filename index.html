@@ -125,7 +125,7 @@ Promise.resolve().then(async()=>{await hydratePhotos();await migrateOldPhotos()}
 <div id="cloudStatus">Čakám na prihlásenie.</div><small>Údaje sa ukladajú aj lokálne. Pri konflikte sa synchronizácia zastaví a vyžaduje rozhodnutie. Zmeny z dvoch zariadení súčasne sa automaticky nezlučujú.</small></div></div>
 <script>
 /* BOZP Audit v6: cloud sync snapshot with optimistic revision checks. No privileged keys. */
-const CLOUD_URL='https://rxtmcvdumfcbrfjugnlm.supabase.co';
+const CLOUD_URL='https://rxtmcvdumfcrbfjugnlm.supabase.co';
 const CLOUD_KEY='sb_publishable_6qfiJVpbPe-2i6wDU9XZHQ_XmLjP-HD';
 const CLOUD_ROW='BOZP_SYNC_V6';
 const cloud={session:null,row:null,revision:null,busy:false,dirty:false,conflict:false,applying:false,timer:null};

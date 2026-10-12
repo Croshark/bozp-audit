@@ -1,0 +1,9 @@
+BEZPEČNOSTNÝ TECHNIK – BOZP AUDIT
+
+1. Rozbaľ celý ZIP do jedného priečinka.
+2. Na počítači otvor index.html (lokálne testovanie).
+3. Pre iPhone zverejni celý priečinok na HTTPS hostingu, napr. GitHub Pages.
+4. Otvor adresu v Safari → Zdieľať → Pridať na plochu.
+5. Pravidelne používaj Nastavenia → Export zálohy JSON.
+
+DÔLEŽITÉ: Súčasťou sú tri XLSX auditové šablóny a register nedostatkov. 11 starších XLS auditov ešte nie je prevedených. Údaje sú uložené iba lokálne v prehliadači, nie na serveri. Právne odkazy nie sú overené na aktuálnosť.

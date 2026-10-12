@@ -1,9 +1,5 @@
-BEZPEČNOSTNÝ TECHNIK – BOZP AUDIT
-
-1. Rozbaľ celý ZIP do jedného priečinka.
-2. Na počítači otvor index.html (lokálne testovanie).
-3. Pre iPhone zverejni celý priečinok na HTTPS hostingu, napr. GitHub Pages.
-4. Otvor adresu v Safari → Zdieľať → Pridať na plochu.
-5. Pravidelne používaj Nastavenia → Export zálohy JSON.
-
-DÔLEŽITÉ: Súčasťou sú tri XLSX auditové šablóny a register nedostatkov. 11 starších XLS auditov ešte nie je prevedených. Údaje sú uložené iba lokálne v prehliadači, nie na serveri. Právne odkazy nie sú overené na aktuálnosť.
+BOZP Audit v4 – Voľná kontrola prevádzky
+Nahraj všetkých 8 súborov do koreňa repozitára GitHub Pages a potvrď Commit changes.
+Pred aktualizáciou exportuj zálohu JSON v Nastavenia.
+Nová funkcia: firma → Voľná kontrola prevádzky → Pridať nedostatok → fotografia → register → opatrenie → protokol PDF.
+Legislatívne odkazy v registri nie sú automaticky aktualizované, pred použitím ich over.

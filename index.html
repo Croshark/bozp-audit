@@ -156,24 +156,31 @@ try{cloud.session=JSON.parse(sessionStorage.getItem('bozp-cloud-session'))}catch
 cloudUI();if(cloud.session)cloudConnect();setInterval(cloudPoll,20000);
 
 // iPhone PWA: vytvorenie skutočného PDF bez okna tlače a externých knižníc.
+let preparedAuditPDF=null;
 async function printReport(){
  const report=document.querySelector('#content .panel');
  if(!report){alert('Najprv otvorte protokol auditu.');return}
  if(!/iPad|iPhone|iPod/i.test(navigator.userAgent)){window.print();return}
  const btn=Array.from(document.querySelectorAll('button')).find(x=>x.getAttribute('onclick')==='printReport()');
- const old=btn?.textContent;if(btn){btn.disabled=true;btn.textContent='Pripravujem PDF…'}
+ const old=btn?.textContent;
+ if(btn){btn.disabled=true;btn.textContent='Pripravujem PDF…'}
+ let box=document.getElementById('iphone-pdf-actions');
+ if(!box){box=document.createElement('div');box.id='iphone-pdf-actions';box.style.cssText='margin:12px 0;padding:14px;border:1px solid #d9e3ec;border-radius:10px;background:white';(btn?.parentElement||report.parentElement).insertAdjacentElement('afterend',box)}
+ box.textContent='Vytváram PDF, počkajte prosím…';
  try{
    const blob=await createAuditPDF(report);
-   const file=new File([blob],'BOZP_Audit_'+new Date().toISOString().slice(0,10)+'.pdf',{type:'application/pdf'});
-   if(navigator.canShare && navigator.canShare({files:[file]})){
-     try{await navigator.share({files:[file],title:'Protokol BOZP Audit'});return}
-     catch(e){if(e.name==='AbortError')return;}
-   }
+   const name='BOZP_Audit_'+new Date().toISOString().slice(0,10)+'.pdf';
+   const file=new File([blob],name,{type:'application/pdf'});
+   if(preparedAuditPDF?.url)URL.revokeObjectURL(preparedAuditPDF.url);
    const url=URL.createObjectURL(blob);
-   const link=document.createElement('a');link.href=url;link.download=file.name;document.body.appendChild(link);link.click();link.remove();
-   setTimeout(()=>URL.revokeObjectURL(url),60000);
-   alert('PDF bolo pripravené. Ak sa neotvorilo uloženie, otvorte audit v Safari.');
- }catch(e){console.error('PDF export',e);alert('PDF sa nepodarilo vytvoriť: '+e.message)}
+   preparedAuditPDF={file,url};
+   box.innerHTML='<b>PDF je pripravené.</b><p style="font-size:13px">Teraz stlačte Zdieľať PDF alebo Otvoriť PDF.</p>';
+   const share=document.createElement('button');share.className='btn';share.textContent='Zdieľať PDF';share.style.marginRight='8px';
+   share.onclick=async()=>{try{if(navigator.canShare?.({files:[file]})&&navigator.share){await navigator.share({files:[file],title:'Protokol BOZP Audit'});}else{alert('Zdieľanie súborov nie je v tomto režime podporované. Použite Otvoriť PDF alebo Safari.')}}catch(e){if(e.name!=='AbortError')alert('Zdieľanie zlyhalo: '+e.message)}};
+   box.appendChild(share);
+   const open=document.createElement('a');open.className='btn secondary';open.textContent='Otvoriť PDF';open.href=url;open.target='_blank';open.rel='noopener';open.style.cssText='display:inline-block;text-decoration:none;margin-top:8px';box.appendChild(open);
+   const dl=document.createElement('a');dl.textContent='Stiahnuť PDF';dl.href=url;dl.download=name;dl.style.cssText='display:inline-block;margin:12px';box.appendChild(dl);
+ }catch(e){console.error('PDF export',e);box.textContent='PDF sa nepodarilo vytvoriť: '+(e?.message||e);alert('PDF sa nepodarilo vytvoriť: '+(e?.message||e))}
  finally{if(btn){btn.disabled=false;btn.textContent=old}}
 }
 async function createAuditPDF(report){

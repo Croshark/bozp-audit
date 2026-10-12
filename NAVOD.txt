@@ -1,5 +1,7 @@
-BOZP Audit v4 – Voľná kontrola prevádzky
-Nahraj všetkých 8 súborov do koreňa repozitára GitHub Pages a potvrď Commit changes.
-Pred aktualizáciou exportuj zálohu JSON v Nastavenia.
-Nová funkcia: firma → Voľná kontrola prevádzky → Pridať nedostatok → fotografia → register → opatrenie → protokol PDF.
-Legislatívne odkazy v registri nie sú automaticky aktualizované, pred použitím ich over.
+BOZP Audit v6 – Cloud Sync
+1. Nahraj vsetky subory do korena GitHub repozitara.
+2. V aplikacii otvor Cloud, prihlas sa e-mailom a heslom Supabase Authentication (nie databazovym heslom).
+3. Na zariadeni s auditmi najprv exportuj JSON zalohu a klikni Odoslat moje udaje do cloudu.
+4. Na druhom zariadeni sa prihlas a klikni Prevziat udaje z cloudu.
+5. Aplikacia nasledne synchronizuje zmeny. Pri konflikte sa zastavi.
+Dolezite: synchronizacia je zalozena na jednej snimke udajov; neupravuj sucasne na dvoch zariadeniach. Pred nasadenim otestuj na skusobnych datach.

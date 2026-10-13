@@ -294,6 +294,7 @@ function dlOpen(){
  '<div class="field"><label>Za klienta – zodpovedná osoba</label><input id="dl-contact" value="'+esc(contact)+'" placeholder="Meno a priezvisko"></div>'+
  '<div class="field"><label>Obdobie</label><input id="dl-period" value="'+esc(period)+'" placeholder="napr. október 2026"></div>'+
  '<div class="field"><label>Dátum návštevy</label><input id="dl-date" value="'+esc(a.date||'')+'"></div>'+
+ '<p class="smalltext muted">Podpis klienta: '+(a.clientSignature?'uložený – bude vložený do stĺpca Za klienta':'zatiaľ nie je uložený; pridaj ho v protokole cez Podpis klienta')+'</p>'+
  '<div class="actions" style="margin-top:18px"><button class="btn" id="dl-generate" onclick="dlGenerate()">Vytvoriť dodací list PDF</button><button class="btn secondary" onclick="document.getElementById(\'dl-s03-modal\').remove()">Zavrieť</button></div><div id="dl-result" style="margin-top:12px" aria-live="polite"></div></div>';
  document.body.appendChild(modal);
 }
@@ -305,7 +306,9 @@ function dlFindings(a){
 function dlText(ctx,s,x,y,maxW,size=18){ctx.fillStyle='#111';ctx.font=size+'px Arial, sans-serif';ctx.textBaseline='top';let value=String(s||'');while(value&&ctx.measureText(value).width>maxW)value=value.slice(0,-1);ctx.fillText(value,x,y)}
 function dlWrap(ctx,str,maxW,font){ctx.font=font;const words=String(str||'').replace(/\s+/g,' ').trim().split(' ');let out=[],line='';for(const word of words){const candidate=line?line+' '+word:word;if(ctx.measureText(candidate).width<=maxW){line=candidate;continue}if(line){out.push(line);line=''}let fragment=word;while(fragment&&ctx.measureText(fragment).width>maxW){let n=fragment.length;while(n>1&&ctx.measureText(fragment.slice(0,n)).width>maxW)n--;out.push(fragment.slice(0,n));fragment=fragment.slice(n)}line=fragment}if(line)out.push(line);return out}
 async function dlLoadImage(src){const img=new Image();img.src=src;await new Promise((resolve,reject)=>{if(img.complete&&img.naturalWidth)return resolve();img.onload=resolve;img.onerror=()=>reject(Error('Predloha dodacieho listu sa nepodarila načítať.'))});return img}
-async function dlBuildPDF(data,findings){
+async function dlBuildPDF(data,findings,signature){
+ let signatureImage=null;
+ if(signature){try{signatureImage=await dlLoadImage(signature)}catch(e){console.warn("Podpis sa nepodarilo načítať",e)}}
  const W=1190,H=1684,scale=2;const bases=await Promise.all(DL_S03_PAGES.map(dlLoadImage));let pages=[];
  function newPage(index){let cv=document.createElement('canvas');cv.width=W;cv.height=H;const ctx=cv.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);ctx.drawImage(bases[index],0,0,W,H);pages.push(cv);return ctx}
  let ctx=newPage(0);
@@ -316,6 +319,14 @@ async function dlBuildPDF(data,findings){
  // V pôvodnom formulári je vzorový dátum; prekryjeme výhradne obsah jeho bunky.
  ctx.fillStyle='#fff';ctx.fillRect(2*40,2*278,2*55,2*13);
  dlText(ctx,data.date,2*41,2*280,2*54,15);
+ // Podpis zástupcu klienta do stĺpca "Za klienta" v časti PRACOVNÝ VÝKON.
+ // Zachovávame pôvodnú predlohu aj tabuľku; podpis sa kreslí transparentne.
+ if(signatureImage){
+  const maxWidth=2*40,maxHeight=2*24;
+  const ratio=Math.min(maxWidth/signatureImage.naturalWidth,maxHeight/signatureImage.naturalHeight);
+  const sw=signatureImage.naturalWidth*ratio,sh=signatureImage.naturalHeight*ratio;
+  ctx.drawImage(signatureImage,2*515+(maxWidth-sw)/2,2*279+(maxHeight-sh)/2,sw,sh);
+ }
  ctx=newPage(1);
  dlText(ctx,data.company,2*245,2*79,2*235,19);
  let y=2*137;const end=2*801;
@@ -350,7 +361,7 @@ async function dlGenerate(){
  if(!data.company||!data.date){result.textContent='Vyplňte spoločnosť a dátum.';return}
  btn.disabled=true;result.textContent='Pripravujem dodací list…';
  try{
-  const blob=await dlBuildPDF(data,dlFindings(audit()));const file=new File([blob],'Dodaci_list_S03_'+data.date.replace(/[^0-9]/g,'-')+'.pdf',{type:'application/pdf'});
+  const blob=await dlBuildPDF(data,dlFindings(audit()),audit()?.clientSignature);const file=new File([blob],'Dodaci_list_S03_'+data.date.replace(/[^0-9]/g,'-')+'.pdf',{type:'application/pdf'});
   if(dlPrepared?.url)URL.revokeObjectURL(dlPrepared.url);const url=URL.createObjectURL(blob);dlPrepared={file,url};
   if(company().contact!==data.contact){company().contact=data.contact;save()}
   result.innerHTML='<p><b>Dodací list PDF je pripravený.</b></p><div class="actions" id="dl-links"></div>';

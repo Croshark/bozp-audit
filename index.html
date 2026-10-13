@@ -338,15 +338,15 @@ function dlOpen(){
  '<div class="field"><label>Spoločnosť</label><input id="dl-company" value="'+esc(c.name||'')+'"></div>'+
  '<div class="field"><label>Za klienta – zodpovedná osoba</label><input id="dl-contact" value="'+esc(contact)+'" placeholder="Meno a priezvisko"></div>'+
  '<div class="field"><label>Obdobie</label><input id="dl-period" value="'+esc(period)+'" placeholder="napr. október 2026"></div>'+
- '<div class="field"><label>Dátum návštevy</label><input id="dl-date" value="'+esc(a.date||'')+'"></div>'+
+ '<div class="field"><label>Dátum návštevy</label><input id="dl-date" value="'+esc(a.date||'')+'"></div>'+ '<div class="field" style="padding:12px;border:1px solid #d5e1ea;border-radius:9px"><label><input type="checkbox" id="dl-no-findings" style="width:auto;margin-right:8px">Vytvoriť dodací list bez nedostatkov</label><p class="smalltext muted" style="margin:5px 0 0">Nedostatky a fotografie sa neuvádzajú v PDF. V samotnom audite zostanú zachované.</p></div>'+
  '<p class="smalltext muted">Podpis klienta: '+(a.clientSignature?'uložený – bude vložený do stĺpca Za klienta':'zatiaľ nie je uložený; pridaj ho v protokole cez Podpis klienta')+'</p>'+
  '<div class="actions" style="margin-top:18px"><button class="btn" id="dl-generate" onclick="dlGenerate()">Vytvoriť dodací list PDF</button><button class="btn secondary" onclick="document.getElementById(\'dl-s03-modal\').remove()">Zavrieť</button></div><div id="dl-result" style="margin-top:12px" aria-live="polite"></div></div>';
  document.body.appendChild(modal);
 }
 function dlFindings(a){
- if(a.templateId==='free')return (a.findings||[]).map((f,i)=>({description:[f.place,f.description,f.law?('Právny základ: '+f.law):'',f.measure?('Opatrenie: '+f.measure):''].filter(Boolean).join(' — '),owner:f.owner||'',deadline:f.deadline||'',number:i+1}));
+ if(a.templateId==='free')return (a.findings||[]).map((f,i)=>({description:[f.place,f.description,f.law?('Právny základ: '+f.law):'',f.measure?('Opatrenie: '+f.measure):''].filter(Boolean).join(' — '),owner:f.owner||'',deadline:f.deadline||'',number:i+1,photos:f.photos||[]}));
  const t=findT(a.templateId);if(!t)return [];
- return allq(t).filter(q=>a.answers?.[q.id]?.status==='bad').map((q,i)=>{const x=a.answers[q.id],r=registry()[x.registry];return {description:[x.finding||q.text,r?.law?('Právny základ: '+r.law):'',x.measure?('Opatrenie: '+x.measure):''].filter(Boolean).join(' — '),owner:x.owner||'',deadline:x.deadline||'',number:i+1}});
+ return allq(t).filter(q=>a.answers?.[q.id]?.status==='bad').map((q,i)=>{const x=a.answers[q.id],r=registry()[x.registry];return {description:[x.finding||q.text,r?.law?('Právny základ: '+r.law):'',x.measure?('Opatrenie: '+x.measure):''].filter(Boolean).join(' — '),owner:x.owner||'',deadline:x.deadline||'',number:i+1,photos:x.photos||[]}});
 }
 function dlText(ctx,s,x,y,maxW,size=18){ctx.fillStyle='#111';ctx.font=size+'px Arial, sans-serif';ctx.textBaseline='top';let value=String(s||'');while(value&&ctx.measureText(value).width>maxW)value=value.slice(0,-1);ctx.fillText(value,x,y)}
 function dlWrap(ctx,str,maxW,font){ctx.font=font;const words=String(str||'').replace(/\s+/g,' ').trim().split(' ');let out=[],line='';for(const word of words){const candidate=line?line+' '+word:word;if(ctx.measureText(candidate).width<=maxW){line=candidate;continue}if(line){out.push(line);line=''}let fragment=word;while(fragment&&ctx.measureText(fragment).width>maxW){let n=fragment.length;while(n>1&&ctx.measureText(fragment.slice(0,n)).width>maxW)n--;out.push(fragment.slice(0,n));fragment=fragment.slice(n)}line=fragment}if(line)out.push(line);return out}
@@ -380,14 +380,31 @@ async function dlBuildPDF(data,findings,signature){
   const desc=f.number+'. '+(f.description||'Bez popisu zistenia');
   const font='17px Arial, sans-serif';
   let lines=dlWrap(ctx,desc,colW[0],font),owners=dlWrap(ctx,f.owner,colW[1],'16px Arial, sans-serif'),dates=dlWrap(ctx,f.deadline,colW[2],'16px Arial, sans-serif');
-  const needed=Math.max(lines.length*23,owners.length*22,dates.length*22)+15;
+  // Fotografie max. 5 × 3 cm na strane A4, bez deformácie pomeru strán.
+  const images=[];
+  for(const photo of (f.photos||[])){
+   try{const src=photoSrc(photo);if(src)images.push(await dlLoadImage(src));else console.warn('Fotografia nie je načítaná:',photo)}
+   catch(e){console.warn('Fotografia sa nedá vložiť do dodacieho listu:',e)}
+  }
+  const photoMaxW=2*142,photoMaxH=2*85; // 5 × 3 cm pri rozlíšení predlohy 1190 px / A4
+  const photoGap=10;
+  const textHeight=Math.max(lines.length*23,owners.length*22,dates.length*22)+15;
+  const needed=textHeight+images.length*(photoMaxH+photoGap)+12;
   if(y+needed>end){ctx=newPage(1);dlText(ctx,data.company,2*245,2*79,2*235,19);y=2*137}
   // Zachovávame hranice tabuľky; iba vkladáme text do existujúcich stĺpcov.
   ctx.fillStyle='#151515';ctx.textBaseline='top';ctx.font=font;
   lines.forEach((line,i)=>ctx.fillText(line,colX[0],y+i*23));
   ctx.font='16px Arial, sans-serif';owners.forEach((line,i)=>ctx.fillText(line,colX[1],y+i*22));
   dates.forEach((line,i)=>ctx.fillText(line,colX[2],y+i*22));
-  y+=needed;
+  let photoY=y+textHeight;
+  for(const img of images){
+   if(photoY+photoMaxH>end){ctx=newPage(1);dlText(ctx,data.company,2*245,2*79,2*235,19);photoY=2*137}
+   const ratio=Math.min(photoMaxW/img.naturalWidth,photoMaxH/img.naturalHeight);
+   const w=img.naturalWidth*ratio,h=img.naturalHeight*ratio;
+   ctx.drawImage(img,colX[0],photoY,w,h);
+   photoY+=photoMaxH+photoGap;
+  }
+  y=photoY+12;
  }
  return dlCanvasToPDF(pages);
 }
@@ -406,7 +423,7 @@ async function dlGenerate(){
  if(!data.company||!data.date){result.textContent='Vyplňte spoločnosť a dátum.';return}
  btn.disabled=true;result.textContent='Pripravujem dodací list…';
  try{
-  const blob=await dlBuildPDF(data,dlFindings(audit()),audit()?.clientSignature);const file=new File([blob],'Dodaci_list_S03_'+data.date.replace(/[^0-9]/g,'-')+'.pdf',{type:'application/pdf'});
+  const withoutFindings=document.getElementById('dl-no-findings')?.checked;const blob=await dlBuildPDF(data,withoutFindings?[]:dlFindings(audit()),audit()?.clientSignature);const file=new File([blob],'Dodaci_list_S03_'+data.date.replace(/[^0-9]/g,'-')+'.pdf',{type:'application/pdf'});
   if(dlPrepared?.url)URL.revokeObjectURL(dlPrepared.url);const url=URL.createObjectURL(blob);dlPrepared={file,url};
   if(company().contact!==data.contact){company().contact=data.contact;save()}
   result.innerHTML='<p><b>Dodací list PDF je pripravený.</b></p><div class="actions" id="dl-links"></div>';

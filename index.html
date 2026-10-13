@@ -429,4 +429,25 @@ function extSign(){extClose();const modal=document.createElement('div');modal.id
 function extClearSign(){if(extSignCanvas)extSignCanvas.getContext('2d').clearRect(0,0,extSignCanvas.width,extSignCanvas.height)}
 function extSaveSign(){if(!extSignCanvas||!audit())return;const c=extSignCanvas;const pixels=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let marked=false;for(let i=3;i<pixels.length;i+=4){if(pixels[i]>0){marked=true;break}}if(!marked)return alert('Najprv sa podpíš.');audit().clientSignature=c.toDataURL('image/png');save();extClose();extSignCanvas=null;render()}
 
+
+/* OPRAVA 13.10.2026: mazanie auditu v každom type obrazovky */
+(function(){
+ const previousRender=render;
+ function addDeleteControl(){
+   const a=typeof audit==='function'?audit():null;
+   const el=document.getElementById('content');
+   if(!el||!a||!['audit','free'].includes(state.view))return;
+   const actions=el.querySelector('.actions');
+   if(!actions||actions.querySelector('[data-delete-audit]'))return;
+   const b=document.createElement('button');
+   b.type='button';b.className='btn danger';b.dataset.deleteAudit='1';
+   b.textContent='🗑 Vymazať audit';
+   b.onclick=function(e){e.preventDefault();e.stopPropagation();deleteAuditPermanent()};
+   actions.appendChild(b);
+ }
+ render=function(){previousRender();addDeleteControl()};
+ const top=document.querySelector('.top .sub');
+ if(top){const marker=document.createElement('div');marker.textContent='Verzia 13.10.2026 · MAZANIE AKTÍVNE';marker.style.cssText='font-size:11px;color:#d54b30;font-weight:700;margin-top:4px';top.appendChild(marker)}
+ addDeleteControl();
+})();
 </script></body></html>

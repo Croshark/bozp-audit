@@ -141,7 +141,7 @@ let accidentStep=0;
 function currentAccident(){return (db.accidents||[]).find(x=>x.id===accidentId)}
 function newAccident(){const a={id:uid(),companyId:state.company,created:new Date().toISOString(),status:'Rozpracované'};db.accidents.push(a);save();accidentId=a.id;accidentStep=0;go('accident')}
 function openAccident(id){accidentId=id;accidentStep=0;go('accident')}
-const RPU_MAX_DIGITS = Object.freeze({"accidentNumber":12,"ico":8,"occupationCode":7,"age":2,"gender":1,"organizationSize":1,"citizenshipCode":1,"workplaceSpec":1,"workplaceCode":3,"injuryCode":3,"bodyCode":2,"processCode":2,"activityCode":2,"deviationCode":2,"contactCode":2,"materialActivity":8,"materialDeviation":8,"materialContact":8,"employmentCode":3,"pnDays":3});
+const RPU_MAX_DIGITS = Object.freeze({"accidentNumber":11,"ico":8,"occupationCode":7,"age":2,"gender":1,"organizationSize":1,"citizenshipCode":1,"workplaceSpec":1,"workplaceCode":3,"injuryCode":3,"bodyCode":2,"processCode":2,"activityCode":2,"deviationCode":2,"contactCode":2,"materialActivity":8,"materialDeviation":8,"materialContact":8,"employmentCode":3,"pnDays":3});
 function accidentNumericClean(key,value){
  const limit=RPU_MAX_DIGITS[key];
  return limit ? String(value??'').replace(/\D/g,'').slice(0,limit) : value;
@@ -177,9 +177,9 @@ function accidentExport(format){const a=currentAccident(),c=company();if(!a||!c)
 /* Pracovné úrazy – rozšírený formulár a samostatné dokumentové náhľady (test). */
 accidentSections[0][1].push(
  ['nationality','Štátna príslušnosť'],['children','Počet nezaopatrených detí','number'],
- ['insured','Nemocensky poistený (áno / nie)'],['salaryOffice','Útvar evidencie miezd a jeho adresa'],
+ ['insured','Nemocensky poistený (áno / nie)'],['salaryOffice','Útvar evidencie miezd a jeho adresa'],['rpuOrganizationUnit','Organizačná zložka zamestnávateľa – RPU (vyplň ručne)'],
  ['legalForm','Právna forma zamestnávateľa'],['nace','SK NACE'],['wageBase','Denný vymeriavací základ'],
- ['workDuration','Ako dlho vykonáva túto prácu'],['workplace','Presné pracovisko'],
+ ['workDuration','Ako dlho vykonáva túto prácu'],['workplace','Pracovisko – RPU (vyplň ručne)'],
  ['serious','Smrteľný / ťažká ujma / ostatný'],['deathDate','Dátum úmrtia (ak sa týka)','date']
 );
 accidentSections[1][1].push(
@@ -193,7 +193,7 @@ accidentSections[1][1].push(
  ['materialContact','Materiálový činiteľ kontaktu']
 );
 accidentSections[2][1].push(
- ['accidentNumber','Číslo úrazu (max. 12 číslic)'],['occupationCode','Kód povolania'],['age','Vek zamestnanca'],['gender','Pohlavie (kód)'],['regionCode','Územie NUTS 3'],['organizationSize','Veľkosť organizácie (kód)'],['citizenshipCode','Príslušnosť k štátom (kód)'],['workplaceSpec','Špecifikácia pracoviska (kód)'],['workplaceCode','Pracovisko (kód)'],['technicalDue','Termín technických opatrení','date'],
+ ['accidentNumber','Číslo úrazu (max. 11 číslic)'],['occupationCode','Kód povolania'],['age','Vek zamestnanca'],['gender','Pohlavie (kód)'],['regionCode','Územie NUTS 3'],['organizationSize','Veľkosť organizácie (kód)'],['citizenshipCode','Príslušnosť k štátom (kód)'],['workplaceSpec','Špecifikácia pracoviska (kód)'],['workplaceCode','Pracovisko (kód)'],['technicalDue','Termín technických opatrení','date'],
  ['organizationalDue','Termín organizačných opatrení','date'],
  ['educationalDue','Termín výchovných opatrení','date'],
  ['unionStatement','Vyjadrenie zástupcu zamestnancov / odborov','textarea'],
@@ -687,7 +687,7 @@ const BOZP_RPU_BOLD_FONT='AAEAAAATAQAABAAwRkZUTaHjh+gAAAE8AAAAHEdERUaH9420AAABWA
 function officialBase64Bytes(s){const a=atob(s),b=new Uint8Array(a.length);for(let i=0;i<a.length;i++)b[i]=a.charCodeAt(i);return b}
 function officialBlobDownload(bytes,name,type){const u=URL.createObjectURL(new Blob([bytes],{type}));const l=document.createElement('a');l.href=u;l.download=name;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),120000)}
 function officialData(){const a=currentAccident(),c=company();if(!a||!c)throw Error('Vyber firmu a pracovný úraz.');const v=k=>String(a[k]??'').trim();return {
- ...a, ico:String(a.ico||c.ico||c.icoNumber||c.companyIco||a.employerIco||''), employer:[c.name,c.address].filter(Boolean).join(', '),site:String(c.site||''),
+ ...a, ico:String(a.ico||c.ico||c.icoNumber||c.companyIco||a.employerIco||''), employer:[c.name,c.address].filter(Boolean).join(', '),site:v('rpuOrganizationUnit'), organizationUnit:v('rpuOrganizationUnit'), rpuOrganizationUnit:v('rpuOrganizationUnit'), workplace:v('workplace'),
  dateTime:[v('date'),v('time')].filter(Boolean).join(' / '),salaryYes:v('salaryOffice')?'ÁNO':'',
  injuryTick:'X', recognized:'ÁNO',employeeFaultPercent:v('responsibility')?String(100-Number(v('responsibility'))):'',
  source:[v('source'),a.sourceCode?'('+a.sourceCode+')':''].filter(Boolean).join(' '),
@@ -868,13 +868,26 @@ function rpuAge(birth,date){if(!birth||!date)return '';const b=new Date(birth),d
 function rpuSplitShift(a){let from=String(a.shiftStart||'').trim(),to=String(a.shiftEnd||'').trim();if(!from||!to){const parts=String(a.shift||'').match(/\d{1,2}:\d{2}/g)||[];from=from||parts[0]||'';to=to||parts[1]||'';}return [from,to];}
 function rpuDuration(a){let y=String(a.durationYears??'').trim(),m=String(a.durationMonths??'').trim(),day=String(a.durationDays??'').trim();if(!y&&!m&&!day){let inp=String(a.workDuration||'').trim(),xs=inp.match(/\d+/g)||[];if(xs.length===3)[y,m,day]=xs;}return [y,m,day];}
 function rpuText(page,font,value,x,top,w,maxLines=1,size=9.0,upper=true){
- const text=upper?rpuCap(value):String(value??'').trim();if(!text)return;
- const words=text.split(' '),lines=[];let current='';
- for(const word of words){let part=current?current+' '+word:word;if(font.widthOfTextAtSize(part,size)>w&&current){lines.push(current);current=word;}else current=part;}if(current)lines.push(current);
- if(lines.length>maxLines||lines.some(t=>font.widthOfTextAtSize(t,size)>w))throw Error('Text sa nezmestí do originálneho poľa: '+text.slice(0,55)+'… Skráť ho alebo doplň prílohu.');
- const H=page.getSize().height;lines.forEach((str,i)=>page.drawText(str,{x,y:H-top-i*10,size,font,color:PDFLib.rgb(0.04,0.05,0.07)}));
-}
-function rpuCells(page,font,v,xs,top,size=9.0){
+  const text=upper?rpuCap(value):String(value??'').trim();if(!text)return;
+  const minSize=5.5;let fontSize=size,lines=[];
+  // Najprv zmenši písmo, až potom zvažuj zalamovanie do povoleného počtu riadkov.
+  while(fontSize>=minSize-0.001){
+    const words=text.split(/\s+/),out=[];let current='';
+    for(const word of words){
+      const candidate=current?current+' '+word:word;
+      if(current&&font.widthOfTextAtSize(candidate,fontSize)>w){out.push(current);current=word;}
+      else current=candidate;
+    }
+    if(current)out.push(current);
+    if(out.length<=maxLines&&out.every(t=>font.widthOfTextAtSize(t,fontSize)<=w)){
+      lines=out;break;
+    }
+    fontSize=+(fontSize-.25).toFixed(2);
+  }
+  if(!lines.length)throw Error('Text je príliš dlhý aj pri menšom písme: '+text.slice(0,55)+'… Použi stručnejší opis alebo prílohu.');
+  const H=page.getSize().height,step=Math.min(10,fontSize*1.15);
+  lines.forEach((str,i)=>page.drawText(str,{x,y:H-top-i*step,size:fontSize,font,color:PDFLib.rgb(0.04,0.05,0.07)}));
+}function rpuCells(page,font,v,xs,top,size=9.0){
  const raw=String(v??'').toLocaleUpperCase('sk').replace(/[^0-9A-Z]/g,'');if(!raw)return;
  if(raw.length>xs.length)throw Error('Kód '+raw+' má '+raw.length+' znakov, ale vo formulári je iba '+xs.length+' políčok.');
  const y=page.getSize().height-top;
@@ -921,7 +934,7 @@ async function officialPDFV2(kind,preview=false){
  cells(0,v('ico')||c.ico||c.icoNumber||c.companyIco||'',seq(94.72,9.697,8),121.3);
  txt(0,v('legalForm'),352.9,132.0,205);
  txt(0,v('salaryOffice'),33.8,155.7,308,2,9);
- txt(0,c.site||c.address||'',352.9,155.7,210,2,8.8);
+ txt(0,v('rpuOrganizationUnit'),352.9,155.7,210,2,8.8);
  cells(0,v('responsibility'),[458.63,467.84,477.06],177.4);
  txt(0,name,51.3,200.5,295);
  cells(0,birth,[477.06,486.27,495.48,504.69,513.91,523.12,532.33,541.55],190.2);
@@ -931,7 +944,7 @@ async function officialPDFV2(kind,preview=false){
  cells(0,v('social'),seq(412.56,9.213,10),224.6);
  txt(0,v('wageBase'),251.6,236.3,128);
  rpuYN(0,v('insured'),191.4,249.8);
- txt(0,v('workplace')||[c.name,c.address].filter(Boolean).join(', '),51.3,272,505,1,8.2);
+ txt(0,v('workplace'),51.3,272,505,1,8.2);
  txt(0,v('position'),51.3,293.5,450);
  txt(0,years,297.6,304.8,35);txt(0,months,389.7,304.8,30);txt(0,days,500.3,304.8,35);
  rpuYN(0,v('qualification'),410.6,318.6);rpuYN(0,v('health'),410.6,330.8);
@@ -967,7 +980,7 @@ async function officialPDFV2(kind,preview=false){
  cells(1,date(v('checkDate')),seq(152.9,9.213,8),552);
  // Oddiel 13 – centrovanie podľa stredov fyzických štvorčekov vo vzore.
  const age=v('age')||rpuAge(v('birth'),v('date'));
- cells(1,v('accidentNumber'),[104.38,114.08,123.78,133.48,143.18,152.88,162.58,172.27,181.97,191.43,200.64,209.61],577.6);
+ cells(1,v('accidentNumber'),[104.38,114.08,123.78,133.48,143.18,152.88,162.58,172.27,181.97,191.43,200.64],577.6);
  cells(1,v('nace'),seq(104.41,9.697,5),599.4);
  cells(1,v('occupationCode'),seq(357.29,9.213,7),599.4);
  cells(1,age,[541.55,550.76],599.4);

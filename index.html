@@ -704,15 +704,59 @@ async function officialWord(kind){
  zip.file(part,xml);const out=await zip.generateAsync({type:'uint8array',compression:'DEFLATE'});
  officialBlobDownload(out,(kind==='rpu'?'Zaznam_RPU':'Oznamenie_poistnej_udalosti')+'_'+(d.date||'bez_datumu')+'.docx','application/vnd.openxmlformats-officedocument.wordprocessingml.document');
 }
-function officialWrite(page,font,value,x,top,w=150,maxLines=1,size=8){
- const str=String(value??'').replace(/\s+/g,' ').trim();if(!str)return;
- const words=str.split(' '),lines=[];let line='';
- for(const word of words){let next=line?line+' '+word:word;if(font.widthOfTextAtSize(next,size)>w&&line){lines.push(line);line=word;}else line=next;}
- if(line)lines.push(line);
- if(lines.length>maxLines||lines.some(v=>font.widthOfTextAtSize(v,size)>w))throw Error('Text je príliš dlhý pre originálne políčko ('+str.slice(0,55)+'…). Skráť opis alebo použi prílohu.');
- const H=page.getSize().height;
- for(let i=0;i<lines.length;i++)page.drawText(lines[i],{x,y:H-top-i*(size+3),size,font,color:PDFLib.rgb(0.04,0.12,0.23)});
+// Uchovaj cely text aj v pripade, ze je dlhy na predtlacene pole.
+let bozpPdfTextAnnex=[];
+function bozpPdfWrap(font,str,size,w){
+ const out=[];for(const paragraph of String(str).split(/\n/)){
+  if(!paragraph.trim()){out.push('');continue;}
+  let line='';for(const word of paragraph.trim().split(/\s+/)){
+   const candidate=line?line+' '+word:word;
+   if(line&&font.widthOfTextAtSize(candidate,size)>w){out.push(line);line=word;}else line=candidate;
+   // Long unbroken entries (e.g. identifiers) must fit without overflowing the border.
+   while(line&&font.widthOfTextAtSize(line,size)>w){
+     let split=1;while(split<line.length&&font.widthOfTextAtSize(line.slice(0,split+1),size)<=w)split++;
+     out.push(line.slice(0,split));line=line.slice(split);
+   }
+  }if(line)out.push(line);
+ }return out;
 }
+function bozpPdfFitted(page,font,value,x,top,w,maxLines,size,upper=false){
+ const original=String(value??'').trim();if(!original)return;
+ const str=upper?original.toLocaleUpperCase('sk-SK'):original;
+ const safeWidth=Math.max(8,Number(w)||150), linesLimit=Math.max(1,Number(maxLines)||1);
+ let chosen=null, chosenSize=Number(size)||8;
+ // Real text fitting: do not replace the value with an annex label.
+ for(let z=chosenSize;z>=1;z=Math.round((z-.1)*10)/10){
+   const lines=linesLimit===1?[str.replace(/\s+/g,' ')]:bozpPdfWrap(font,str,z,safeWidth);
+   if(lines.length<=linesLimit && lines.every(line=>font.widthOfTextAtSize(line,z)<=safeWidth+0.01)){
+     chosen=lines; chosenSize=z; break;
+   }
+ }
+ if(!chosen){
+   const normalized=str.replace(/\s+/g,' ');
+   chosen=[normalized];
+   chosenSize=Math.min(1,Math.max(.15,safeWidth/Math.max(font.widthOfTextAtSize(normalized,1),.001)));
+ }
+ const H=page.getSize().height,step=Math.min(chosenSize+2,Math.max(2,chosenSize*1.2));
+ chosen.forEach((line,i)=>page.drawText(line,{x,y:H-top-i*step,size:chosenSize,font,color:PDFLib.rgb(.04,.12,.23)}));
+}
+function officialWrite(page,font,value,x,top,w=150,maxLines=1,size=8){
+ return bozpPdfFitted(page,font,value,x,top,w,maxLines,size,false);
+}
+async function bozpPdfAddAnnex(pdf,font){
+ if(!bozpPdfTextAnnex.length)return;
+ const items=bozpPdfTextAnnex.slice();let page=null,y=0;
+ function newPage(){page=pdf.addPage([595,842]);y=795;page.drawText('PRÍLOHA – POKRAČOVANIE ÚDAJOV K PRACOVNÉMU ÚRAZU',{x:40,y,size:11,font,color:PDFLib.rgb(.06,.13,.22)});y-=34;}
+ newPage();
+ for(const item of items){
+  const caption='Položka '+item.index+' – úplný text:';
+  if(y<95)newPage();page.drawText(caption,{x:40,y,size:9,font});y-=15;
+  const lines=bozpPdfWrap(font,item.text,8,505);
+  for(const line of lines){if(y<52)newPage();if(line)page.drawText(line,{x:40,y,size:8,font});y-=12;}
+  y-=14;
+ }
+}
+
 function officialDigits(page,font,value,x,top,step,count,size=8){
  const str=String(value??'').replace(/[^0-9]/g,'');if(!str)return;
  if(str.length>count)throw Error('Číslo '+str+' má viac číslic, než obsahuje úradné tlačivo.');
@@ -720,6 +764,7 @@ function officialDigits(page,font,value,x,top,step,count,size=8){
  for(let i=0;i<str.length;i++){const c=str[i];const cw=font.widthOfTextAtSize(c,size);page.drawText(c,{x:x+i*step+(step-cw)/2,y:H-top,size,font,color:PDFLib.rgb(0.04,0.12,0.23)});}
 }
 async function officialPDF(kind,preview=false){
+ bozpPdfTextAnnex=[];
  const d=officialData();if(!window.PDFLib||!window.fontkit)throw Error('Na vytvorenie PDF je potrebné pripojenie na internet.');
  const src=officialBase64Bytes(kind==='rpu'?BOZP_OFFICIAL.RPU_PDF:BOZP_OFFICIAL.OPU_PDF);
  const pdf=await PDFLib.PDFDocument.load(src);pdf.registerFontkit(window.fontkit);
@@ -789,7 +834,26 @@ async function officialPDF(kind,preview=false){
   ];
   const white=PDFLib.rgb(1,1,1);
   for(let ip=0;ip<2;ip++)for(const [x,y,x2] of dotRanges[ip])pages[ip].drawRectangle({x:x-1,y:pages[ip].getSize().height-y-10,width:x2-x+2,height:12,color:white});
-  const E=(p,k,x,t,w=150,n=1,z=8)=>W(p,k,x,t,w,n,z);
+  // OPU: the text must fit within the printed form; never use an annex marker.
+  const E=(p,k,x,t,w=150,n=1,z=8)=>{
+   const raw=String(d[k]??'').trim();if(!raw)return;
+   const text=raw.replace(/\s+/g,' '), usable=Math.max(10,w-2), limit=Math.max(1,n);
+   let size=z, lines=[];
+   for(;size>=2;size=+(size-.2).toFixed(2)){
+    lines=limit===1?[text]:bozpPdfWrap(font,raw,size,usable);
+    if(lines.length<=limit&&lines.every(line=>font.widthOfTextAtSize(line,size)<=usable))break;
+   }
+   if(size<2){
+    // Exceptionally long entries still stay in the original field.
+    size=2;lines=limit===1?[text]:bozpPdfWrap(font,raw,size,usable);
+    if(lines.length>limit)lines=[text];
+    const widest=Math.max(1,...lines.map(line=>font.widthOfTextAtSize(line,size)));
+    size=Math.min(size,size*usable/widest);
+   }
+   const page=pages[p], topY=page.getSize().height-t;
+   const step=Math.min(size+2,Math.max(3,size*1.15));
+   lines.forEach((line,i)=>page.drawText(line,{x,y:topY-i*step,size,font,color:PDFLib.rgb(.04,.12,.23)}));
+  };
   E(0,'ico',259,219,66,1,8);E(0,'nace',437,219,74,1,8);
   E(0,'employer',311,241,207,1,7);E(0,'salaryOffice',155,300,360,1,8);
   E(0,'date',376,338,59,1,7);E(0,'time',451,338,40,1,7);
@@ -807,11 +871,12 @@ async function officialPDF(kind,preview=false){
   E(1,'employeeFault',98,422,414,1,8);E(1,'court',242,533,238,1,8);
   E(1,'courtDecision',250,569,265,1,8);
  }
+ await bozpPdfAddAnnex(pdf,font);
  const bytes=await pdf.save({useObjectStreams:false});
  // Verify the actual serialized bytes before offering a download.
  if(bytes.length<5000 || String.fromCharCode(...bytes.slice(0,5))!=='%PDF-')throw Error('Vytvorený PDF súbor nie je platný.');
  const reread=await PDFLib.PDFDocument.load(bytes,{ignoreEncryption:false});
- if(reread.getPageCount()!==2)throw Error('PDF nemá požadované dve strany.');
+ if(reread.getPageCount()<2)throw Error('PDF nemá požadované dve strany.');
  if(preview){officialShowPreview(bytes,kind);return;}officialBlobDownload(bytes,(kind==='rpu'?'Zaznam_RPU':'Oznamenie_poistnej_udalosti')+'_'+(d.date||'bez_datumu')+'.pdf','application/pdf');
 }
 function officialExactCells(page,font,value,centers,top,size=7.5){
@@ -849,7 +914,7 @@ async function officialExport(kind,format){try{
  }catch(e){console.error(e);alert('Export sa nepodaril: '+e.message)} }
 const officialOldRender=renderAccidentForm;
 renderAccidentForm=function(){let html=officialOldRender();if(!currentAccident())return html;
- const block='<div class="panel" style="margin-top:16px;border:2px solid #14698a"><h3>Originálne úradné tlačivá</h3><p class="smalltext muted">Vygenerujú sa len tvoje dve originálne úradné tlačivá. RPU vypĺňa dvojstranovú predlohu podľa tvojho vyplneného vzoru. Číselníky ESAW sú podľa prílohy vyhlášky č. 500/2006 Z. z.; povolania sú zo SK ISCO-08_2020. Podpisové miesta zostanú voľné. Ak sa text do políčka nezmestí, export sa zastaví a upozorní ťa.</p><div class="actions"><button class="btn secondary" onclick="officialExport(\'rpu\',\'preview\')">👁 Náhľad Záznam RPU</button><button class="btn" onclick="officialExport(\'rpu\',\'pdf\')">Záznam RPU · originálne PDF</button><button class="btn secondary" onclick="officialExport(\'opu\',\'preview\')">👁 Náhľad Oznámenie poistnej udalosti</button><button class="btn" onclick="officialExport(\'opu\',\'pdf\')">Oznámenie poistnej udalosti · originálne PDF</button><button class="btn secondary" onclick="officialExport(\'rpu\',\'word\')">Záznam RPU · Word (rovnaký ako PDF)</button><button class="btn secondary" onclick="officialExport(\'opu\',\'word\')">Oznámenie poistnej udalosti · Word (rovnaký ako PDF)</button></div><p class="smalltext" style="margin-top:12px">Testovacia verzia: pred úradným použitím skontroluj rozloženie a údaje. Word zachová vzhľad PDF (strany sú obrázky, text sa vo Worde neupravuje).</p></div>';
+ const block='<div class="panel" style="margin-top:16px;border:2px solid #14698a"><h3>Originálne úradné tlačivá</h3><p class="smalltext muted">Vygenerujú sa len tvoje dve originálne úradné tlačivá. RPU vypĺňa dvojstranovú predlohu podľa tvojho vyplneného vzoru. Číselníky ESAW sú podľa prílohy vyhlášky č. 500/2006 Z. z.; povolania sú zo SK ISCO-08_2020. Podpisové miesta zostanú voľné. Dlhšie texty sa v PDF automaticky zmenšujú priamo vo vyhradených poliach.</p><div class="actions"><button class="btn secondary" onclick="officialExport(\'rpu\',\'preview\')">👁 Náhľad Záznam RPU</button><button class="btn" onclick="officialExport(\'rpu\',\'pdf\')">Záznam RPU · originálne PDF</button><button class="btn secondary" onclick="officialExport(\'opu\',\'preview\')">👁 Náhľad Oznámenie poistnej udalosti</button><button class="btn" onclick="officialExport(\'opu\',\'pdf\')">Oznámenie poistnej udalosti · originálne PDF</button><button class="btn secondary" onclick="officialExport(\'rpu\',\'word\')">Záznam RPU · Word (rovnaký ako PDF)</button><button class="btn secondary" onclick="officialExport(\'opu\',\'word\')">Oznámenie poistnej udalosti · Word (rovnaký ako PDF)</button></div><p class="smalltext" style="margin-top:12px">Testovacia verzia: pred úradným použitím skontroluj rozloženie a údaje. Word zachová vzhľad PDF (strany sú obrázky, text sa vo Worde neupravuje).</p></div>';
  return html.replace('<div class="warning">Pracovná verzia',block+'<div class="warning">Pracovná verzia');
 };
 
@@ -868,32 +933,16 @@ function rpuAge(birth,date){if(!birth||!date)return '';const b=new Date(birth),d
 function rpuSplitShift(a){let from=String(a.shiftStart||'').trim(),to=String(a.shiftEnd||'').trim();if(!from||!to){const parts=String(a.shift||'').match(/\d{1,2}:\d{2}/g)||[];from=from||parts[0]||'';to=to||parts[1]||'';}return [from,to];}
 function rpuDuration(a){let y=String(a.durationYears??'').trim(),m=String(a.durationMonths??'').trim(),day=String(a.durationDays??'').trim();if(!y&&!m&&!day){let inp=String(a.workDuration||'').trim(),xs=inp.match(/\d+/g)||[];if(xs.length===3)[y,m,day]=xs;}return [y,m,day];}
 function rpuText(page,font,value,x,top,w,maxLines=1,size=9.0,upper=true){
-  const text=upper?rpuCap(value):String(value??'').trim();if(!text)return;
-  const minSize=5.5;let fontSize=size,lines=[];
-  // Najprv zmenši písmo, až potom zvažuj zalamovanie do povoleného počtu riadkov.
-  while(fontSize>=minSize-0.001){
-    const words=text.split(/\s+/),out=[];let current='';
-    for(const word of words){
-      const candidate=current?current+' '+word:word;
-      if(current&&font.widthOfTextAtSize(candidate,fontSize)>w){out.push(current);current=word;}
-      else current=candidate;
-    }
-    if(current)out.push(current);
-    if(out.length<=maxLines&&out.every(t=>font.widthOfTextAtSize(t,fontSize)<=w)){
-      lines=out;break;
-    }
-    fontSize=+(fontSize-.25).toFixed(2);
-  }
-  if(!lines.length)throw Error('Text je príliš dlhý aj pri menšom písme: '+text.slice(0,55)+'… Použi stručnejší opis alebo prílohu.');
-  const H=page.getSize().height,step=Math.min(10,fontSize*1.15);
-  lines.forEach((str,i)=>page.drawText(str,{x,y:H-top-i*step,size:fontSize,font,color:PDFLib.rgb(0.04,0.05,0.07)}));
-}function rpuCells(page,font,v,xs,top,size=9.0){
+ return bozpPdfFitted(page,font,value,x,top,w,maxLines,size,upper);
+}
+function rpuCells(page,font,v,xs,top,size=9.0){
  const raw=String(v??'').toLocaleUpperCase('sk').replace(/[^0-9A-Z]/g,'');if(!raw)return;
  if(raw.length>xs.length)throw Error('Kód '+raw+' má '+raw.length+' znakov, ale vo formulári je iba '+xs.length+' políčok.');
  const y=page.getSize().height-top;
  for(let i=0;i<raw.length;i++){const c=raw[i],cx=xs[i];page.drawText(c,{x:cx-font.widthOfTextAtSize(c,size)/2,y,size,font,color:PDFLib.rgb(0.03,0.03,0.04)});}
 }
 async function officialPDFV2(kind,preview=false){
+ bozpPdfTextAnnex=[];
  if(kind!=='rpu')return BOZP_RPU_OLD_PDF(kind,preview);
  if(!window.PDFLib||!window.fontkit)throw Error('PDF potrebuje knižnice pdf-lib a fontkit. Over internetové pripojenie.');
  const a=currentAccident(),c=company();if(!a||!c)throw Error('Vyber firmu a pracovný úraz.');
@@ -1005,15 +1054,16 @@ async function officialPDFV2(kind,preview=false){
  cells(1,v('materialDeviation'),seq(486.27,9.213,8),728.5);
  cells(1,v('contactCode'),[219.09,228.3],750);
  cells(1,v('materialContact'),seq(486.27,9.213,8),750);
+ await bozpPdfAddAnnex(pdf,f);
  const bytes=await pdf.save({useObjectStreams:false});
  // Vygenerovaný PDF sa pred stiahnutím skúšobne načíta znova.
  if(bytes.length<1000 || String.fromCharCode(...bytes.subarray(0,5))!=='%PDF-')throw Error('Vytvorený PDF súbor nemá platnú hlavičku.');
  try {
    const verified=await PDFLib.PDFDocument.load(bytes,{ignoreEncryption:false});
-   if(verified.getPageCount()!==2)throw Error('Nesprávny počet strán');
+   if(verified.getPageCount()<2)throw Error('Nesprávny počet strán');
    if(window.pdfjsLib){
      const loaded=await window.pdfjsLib.getDocument({data:bytes.slice(),stopAtErrors:true,useWorkerFetch:false}).promise;
-     if(loaded.numPages!==2)throw Error('Nesprávny počet strán v čítačke PDF');
+     if(loaded.numPages<2)throw Error('Nesprávny počet strán v čítačke PDF');
      await loaded.getPage(1);await loaded.getPage(2);
      await loaded.destroy();
    }

@@ -622,15 +622,43 @@ async function dlBuildPDF(data,findings,signature){
  dlText(ctx,data.period,2*170,2*115,2*360,18);
  dlText(ctx,data.contact,2*170,2*157,2*350,18);
  // V pôvodnom formulári je vzorový dátum; prekryjeme výhradne obsah jeho bunky.
- ctx.fillStyle='#fff';ctx.fillRect(2*40,2*278,2*55,2*13);
- dlText(ctx,data.date,2*41,2*280,2*54,15);
- // Podpis zástupcu klienta do stĺpca "Za klienta" v časti PRACOVNÝ VÝKON.
- // Zachovávame pôvodnú predlohu aj tabuľku; podpis sa kreslí transparentne.
+ // Prvý dátumový riadok má pri predlohe y = 555..581 px.
+ // Prekryť len vnútro dátumovej bunky, bez mazania vodorovných alebo zvislých čiar.
+ ctx.fillStyle='#fff';ctx.fillRect(78,558,106,21);
+ dlText(ctx,data.date,78,559,105,16);
+ // Podpis uložený podpisujúcou osobou: vyrezať skutočne nakreslené ťahy,
+ // vykresliť spojito modrým atramentom a zarovnať do bunky Za klienta.
+ // Podpis nikdy nevytvárame automaticky; používa sa iba uložený klientsky podpis.
  if(signatureImage){
-  const maxWidth=2*40,maxHeight=2*24;
-  const ratio=Math.min(maxWidth/signatureImage.naturalWidth,maxHeight/signatureImage.naturalHeight);
-  const sw=signatureImage.naturalWidth*ratio,sh=signatureImage.naturalHeight*ratio;
-  ctx.drawImage(signatureImage,2*515+(maxWidth-sw)/2,2*279+(maxHeight-sh)/2,sw,sh);
+  const ink=document.createElement('canvas');ink.width=signatureImage.naturalWidth;ink.height=signatureImage.naturalHeight;
+  const ix=ink.getContext('2d',{willReadFrequently:true});ix.drawImage(signatureImage,0,0);
+  const px=ix.getImageData(0,0,ink.width,ink.height),d=px.data;
+  let left=ink.width,top=ink.height,right=-1,bottom=-1;
+  // Uložený podpis má transparentné pozadie. Pri jeho prekreslení zachováme alfa kanál.
+  for(let y=0;y<ink.height;y++)for(let x=0;x<ink.width;x++){
+   const i=(y*ink.width+x)*4;if(d[i+3]<22)continue;
+   if(x<left)left=x;if(x>right)right=x;if(y<top)top=y;if(y>bottom)bottom=y;
+  }
+  if(right>=left&&bottom>=top){
+   const margin=3;left=Math.max(0,left-margin);top=Math.max(0,top-margin);
+   right=Math.min(ink.width-1,right+margin);bottom=Math.min(ink.height-1,bottom+margin);
+   // Modrá farba pera pri zachovaní pôvodných ručne nakreslených ťahov.
+   ix.globalCompositeOperation='source-in';ix.fillStyle='#174eae';ix.fillRect(0,0,ink.width,ink.height);
+   ix.globalCompositeOperation='source-over';
+   const cw=right-left+1,ch=bottom-top+1;
+   const box={x:1030,y:557,w:80,h:22}; // vnútro 1. riadka stĺpca Za klienta
+   const ratio=Math.min(box.w/cw,box.h/ch);
+   const sw=cw*ratio,sh=ch*ratio;
+   const dx=box.x+(box.w-sw)/2,dy=box.y+(box.h-sh)/2;
+   ctx.save();ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+   // Drobné paralelné odtlačky zlepšia spojitosť pri zmenšení pôvodného PNG.
+   const weight=0.42;
+   ctx.globalAlpha=0.44;
+   for(const [ox,oy] of [[-weight,0],[weight,0],[0,-weight],[0,weight]])
+    ctx.drawImage(ink,left,top,cw,ch,dx+ox,dy+oy,sw,sh);
+   ctx.globalAlpha=1;ctx.drawImage(ink,left,top,cw,ch,dx,dy,sw,sh);
+   ctx.restore();
+  }
  }
  ctx=newPage(1);
  dlText(ctx,data.company,2*245,2*79,2*235,19);
@@ -674,7 +702,7 @@ function dlCanvasToPDF(pages){
  function obj(id,head,stream){offsets[id]=pos;add(id+' 0 obj\n'+head);if(stream){add('\nstream\n');add(stream);add('\nendstream')}add('\nendobj\n')}
  add('%PDF-1.4\n');const count=2+pages.length*3;
  obj(1,'<</Type /Catalog /Pages 2 0 R>>');obj(2,'<</Type /Pages /Kids ['+pages.map((_,i)=>(3+i*3)+' 0 R').join(' ')+'] /Count '+pages.length+'>>');
- pages.forEach((cv,i)=>{const pid=3+i*3,im=pid+1,content=pid+2;const raw=atob(cv.toDataURL('image/jpeg',0.92).split(',')[1]);let jpg=new Uint8Array(raw.length);for(let j=0;j<raw.length;j++)jpg[j]=raw.charCodeAt(j);obj(pid,'<</Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources <</XObject <</Im0 '+im+' 0 R>>>> /Contents '+content+' 0 R>>');obj(im,'<</Type /XObject /Subtype /Image /Width '+cv.width+' /Height '+cv.height+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+jpg.length+'>>',jpg);const ops='q 595.28 0 0 841.89 0 0 cm /Im0 Do Q\n';obj(content,'<</Length '+enc.encode(ops).length+'>>',enc.encode(ops))});
+ pages.forEach((cv,i)=>{const pid=3+i*3,im=pid+1,content=pid+2;const raw=atob(cv.toDataURL('image/jpeg',0.98).split(',')[1]);let jpg=new Uint8Array(raw.length);for(let j=0;j<raw.length;j++)jpg[j]=raw.charCodeAt(j);obj(pid,'<</Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources <</XObject <</Im0 '+im+' 0 R>>>> /Contents '+content+' 0 R>>');obj(im,'<</Type /XObject /Subtype /Image /Width '+cv.width+' /Height '+cv.height+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+jpg.length+'>>',jpg);const ops='q 595.28 0 0 841.89 0 0 cm /Im0 Do Q\n';obj(content,'<</Length '+enc.encode(ops).length+'>>',enc.encode(ops))});
  const start=pos;add('xref\n0 '+(count+1)+'\n0000000000 65535 f \n');for(let i=1;i<=count;i++)add(String(offsets[i]).padStart(10,'0')+' 00000 n \n');add('trailer\n<</Size '+(count+1)+' /Root 1 0 R>>\nstartxref\n'+start+'\n%%EOF');return new Blob(parts,{type:'application/pdf'});
 }
 async function dlGenerate(){
@@ -737,7 +765,7 @@ let extPaint=null;
 async function extAnnotate(){const f=audit()?.findings?.[state.index];if(!f?.photos?.length)return alert('Najprv pridaj fotografiu k nedostatku.');const pick=f.photos.length===1?0:Number(prompt('Číslo fotografie na označenie (1 až '+f.photos.length+')','1'))-1;if(!Number.isInteger(pick)||pick<0||pick>=f.photos.length)return;const src=photoSrc(f.photos[pick]);if(!src)return alert('Fotografia sa ešte nenačítala.');const img=new Image();img.src=src;try{await img.decode()}catch{return alert('Fotografia sa nedá načítať.')}const modal=document.createElement('div');modal.id='ext-modal';modal.style.cssText='position:fixed;inset:0;z-index:9999;background:#071b2aee;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px;gap:10px';modal.innerHTML='<div style="color:white">Prstom označ nedostatok na fotografii</div><canvas id="ext-canvas" style="max-width:100%;max-height:72vh;touch-action:none;background:white"></canvas><div class="actions"><button class="btn" onclick="extSaveAnnotation()">Uložiť označenie</button><button class="btn secondary" onclick="extClose()">Zrušiť</button></div>';document.body.appendChild(modal);const cv=document.getElementById('ext-canvas');const factor=Math.min(1,1600/img.naturalWidth,1600/img.naturalHeight);cv.width=Math.round(img.naturalWidth*factor);cv.height=Math.round(img.naturalHeight*factor);const ctx=cv.getContext('2d');ctx.drawImage(img,0,0,cv.width,cv.height);ctx.strokeStyle='#ff3020';ctx.lineWidth=Math.max(4,cv.width/170);ctx.lineCap='round';let drawing=false;const point=e=>{const r=cv.getBoundingClientRect();return {x:(e.clientX-r.left)*cv.width/r.width,y:(e.clientY-r.top)*cv.height/r.height}};cv.onpointerdown=e=>{drawing=true;cv.setPointerCapture(e.pointerId);const p=point(e);ctx.beginPath();ctx.moveTo(p.x,p.y)};cv.onpointermove=e=>{if(!drawing)return;const p=point(e);ctx.lineTo(p.x,p.y);ctx.stroke()};cv.onpointerup=()=>drawing=false;extPaint={cv,auditId:audit().id,index:state.index,photoIndex:pick}}
 async function extSaveAnnotation(){if(!extPaint)return;const {cv,auditId,index,photoIndex}=extPaint;const a=db.audits.find(x=>x.id===auditId),f=a?.findings?.[index];if(!f)return;try{const blob=await new Promise(resolve=>cv.toBlob(resolve,'image/jpeg',0.85));if(!blob)throw Error('Nedá sa vytvoriť obrázok');const id=PHOTO_PREFIX+uid();await photoPut(id,blob);photoUrls.set(id,URL.createObjectURL(blob));const old=f.photos[photoIndex];f.photos[photoIndex]=id;save();discardPhotoIfUnused(old);extClose();extPaint=null;render()}catch(e){alert('Nepodarilo sa uložiť označenie: '+e.message)}}
 let extSignCanvas=null;
-function extSign(){extClose();const modal=document.createElement('div');modal.id='ext-modal';modal.style.cssText='position:fixed;inset:0;z-index:9999;background:#071b2acb;display:flex;align-items:center;justify-content:center;padding:15px';modal.innerHTML='<div style="background:white;padding:20px;border-radius:14px;width:min(620px,100%)"><h3>Podpis zástupcu klienta</h3><p class="smalltext">Podpis prstom alebo myšou. Pred uložením over súhlas podpisujúcej osoby.</p><canvas id="ext-sign" width="800" height="250" style="width:100%;height:180px;border:1px solid #aab;touch-action:none;background:white"></canvas><div class="actions" style="margin-top:12px"><button class="btn" onclick="extSaveSign()">Uložiť podpis</button><button class="btn secondary" onclick="extClearSign()">Vymazať</button><button class="btn secondary" onclick="extClose()">Zrušiť</button></div></div>';document.body.appendChild(modal);const cv=document.getElementById('ext-sign'),ctx=cv.getContext('2d');ctx.strokeStyle='#152b43';ctx.lineWidth=3;ctx.lineCap='round';let drawing=false;const point=e=>{const r=cv.getBoundingClientRect();return {x:(e.clientX-r.left)*cv.width/r.width,y:(e.clientY-r.top)*cv.height/r.height}};cv.onpointerdown=e=>{drawing=true;cv.setPointerCapture(e.pointerId);const p=point(e);ctx.beginPath();ctx.moveTo(p.x,p.y)};cv.onpointermove=e=>{if(!drawing)return;const p=point(e);ctx.lineTo(p.x,p.y);ctx.stroke()};cv.onpointerup=()=>drawing=false;extSignCanvas=cv}
+function extSign(){extClose();const modal=document.createElement('div');modal.id='ext-modal';modal.style.cssText='position:fixed;inset:0;z-index:9999;background:#071b2acb;display:flex;align-items:center;justify-content:center;padding:15px';modal.innerHTML='<div style="background:white;padding:20px;border-radius:14px;width:min(620px,100%)"><h3>Podpis zástupcu klienta</h3><p class="smalltext">Podpis prstom alebo myšou. Pred uložením over súhlas podpisujúcej osoby.</p><canvas id="ext-sign" width="800" height="250" style="width:100%;height:180px;border:1px solid #aab;touch-action:none;background:white"></canvas><div class="actions" style="margin-top:12px"><button class="btn" onclick="extSaveSign()">Uložiť podpis</button><button class="btn secondary" onclick="extClearSign()">Vymazať</button><button class="btn secondary" onclick="extClose()">Zrušiť</button></div></div>';document.body.appendChild(modal);const cv=document.getElementById('ext-sign'),ctx=cv.getContext('2d');ctx.strokeStyle='#174eae';ctx.lineWidth=6;ctx.lineCap='round';ctx.lineJoin='round';let drawing=false;const point=e=>{const r=cv.getBoundingClientRect();return {x:(e.clientX-r.left)*cv.width/r.width,y:(e.clientY-r.top)*cv.height/r.height}};cv.onpointerdown=e=>{drawing=true;cv.setPointerCapture(e.pointerId);const p=point(e);ctx.beginPath();ctx.moveTo(p.x,p.y)};cv.onpointermove=e=>{if(!drawing)return;const p=point(e);ctx.lineTo(p.x,p.y);ctx.stroke()};cv.onpointerup=()=>drawing=false;extSignCanvas=cv}
 function extClearSign(){if(extSignCanvas)extSignCanvas.getContext('2d').clearRect(0,0,extSignCanvas.width,extSignCanvas.height)}
 function extSaveSign(){if(!extSignCanvas||!audit())return;const c=extSignCanvas;const pixels=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let marked=false;for(let i=3;i<pixels.length;i+=4){if(pixels[i]>0){marked=true;break}}if(!marked)return alert('Najprv sa podpíš.');audit().clientSignature=c.toDataURL('image/png');save();extClose();extSignCanvas=null;render()}
 

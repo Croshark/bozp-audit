@@ -1,7 +1,11 @@
-BOZP Audit v6 – Cloud Sync
-1. Nahraj vsetky subory do korena GitHub repozitara.
-2. V aplikacii otvor Cloud, prihlas sa e-mailom a heslom Supabase Authentication (nie databazovym heslom).
-3. Na zariadeni s auditmi najprv exportuj JSON zalohu a klikni Odoslat moje udaje do cloudu.
-4. Na druhom zariadeni sa prihlas a klikni Prevziat udaje z cloudu.
-5. Aplikacia nasledne synchronizuje zmeny. Pri konflikte sa zastavi.
-Dolezite: synchronizacia je zalozena na jednej snimke udajov; neupravuj sucasne na dvoch zariadeniach. Pred nasadenim otestuj na skusobnych datach.
+BOZP AUDIT – PREMIUM KARTA A VIZITKA
+
+1. Rozbaľ ZIP.
+2. Do repozitára Croshark/bozp-audit nahraj súbory z priečinka (bez nadradeného priečinka).
+3. Nahraď existujúci index.html, logo-sidebar.png, sw.js a ostatné súbory s rovnakým názvom.
+4. Po Commit changes počkaj na nasadenie Cloudflare Pages.
+5. Otvor aplikáciu a klikni na logo v ľavom menu.
+6. Vizitka má priamo použiteľné odkazy na e-mail a telefonovanie.
+7. Súbor vizitka-nahlad.png je len samostatný obrázok k dispozícii; modal je editovateľný HTML.
+
+Pred nasadením si ulož zálohu, najmä ak máš nezosynchronizované lokálne údaje.

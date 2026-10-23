@@ -1,4 +1,4 @@
-const CACHE='bozp-audit-premium-contact-20261023-v1';
+const CACHE='bozp-audit-premium-contact-20261023-v2';
 const FILES=['./index.html','./manifest.webmanifest','./logo-sidebar.png','./hero.jpg','./hero-light.jpg','./icon-192.png','./icon-512.png','./company-1.jpg','./company-2.jpg','./company-3.jpg','./company-4.jpg','./company-5.jpg','./company-6.jpg'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(c=>Promise.allSettled(FILES.map(file=>c.add(file)))).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('bozp-audit-')&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));

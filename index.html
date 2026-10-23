@@ -370,35 +370,7 @@ function accidentCodeSearch(key,term){const box=document.getElementById('acresul
 function accidentTogglePicker(key){const el=document.getElementById('acpicker_'+key);if(!el)return;el.hidden=!el.hidden;if(!el.hidden){accidentCodeSearch(key,'');document.getElementById('acsearch_'+key)?.focus()}}
 function accidentField(key,label,type){const a=currentAccident()||{},value=esc(a[key]||'');let control=type==='textarea'?'<textarea id="ai_'+key+'" oninput="accidentSet(\''+key+'\',this.value)">'+value+'</textarea>':(RPU_MAX_DIGITS[key]?'<input id="ai_'+key+'" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="'+RPU_MAX_DIGITS[key]+'" title="Najviac '+RPU_MAX_DIGITS[key]+' číslic podľa políčok RPU" value="'+esc(accidentNumericClean(key,a[key]||''))+'" oninput="accidentLimitedInput(this,\''+key+'\')">':'<input id="ai_'+key+'" type="'+(type||'text')+'" value="'+value+'" oninput="accidentSet(\''+key+'\',this.value)">');if(accidentCodeLists[key]){const a=currentAccident()||{};const code=String(a[key]||'');return '<div class="field"><label for="ai_'+key+'">'+esc(label)+'</label><div class="ac-code-row"><input id="ai_'+key+'" value="'+esc(code)+'" readonly placeholder="Vyber kód z číselníka"><button type="button" class="btn secondary small" onclick="accidentTogglePicker(\''+key+'\')">🔎 Hľadať</button></div><div id="acsummary_'+key+'" class="smalltext muted" style="margin-top:5px">'+esc(accidentCodeLabel(key,code))+'</div><div id="acpicker_'+key+'" class="ac-picker" hidden><input id="acsearch_'+key+'" class="search" placeholder="Zadaj názov alebo kód..." oninput="accidentCodeSearch(\''+key+'\',this.value)"><div id="acresults_'+key+'" class="ac-results"></div></div></div>'}return '<div class="field"><label for="ai_'+key+'">'+esc(label)+'</label>'+control+'</div>'}
 function renderAccidentForm(){const a=currentAccident();if(!a)return '<div class="empty">Záznam sa nenašiel.</div>';const sec=accidentSections[accidentStep];let fields=sec[1].map(x=>accidentField(...x)).join('');return '<div class="eyebrow">'+esc(company()?.name||'')+' / Pracovný úraz</div><div class="row" style="flex-wrap:wrap"><div class="title">Vyšetrovací hárok</div><button type="button" class="btn small danger" onclick="deleteAccident(accidentId)">🗑 Vymazať tento úraz</button></div><div class="muted">'+esc(a.employee||'Nový záznam')+' · priebežné ukladanie · krok '+(accidentStep+1)+' z '+accidentSections.length+'</div><div class="progress"><div style="width:'+((accidentStep+1)/accidentSections.length*100)+'%"></div></div><div class="panel"><h3>'+esc(sec[0])+'</h3><div class="accident-fields">'+fields+'</div><div class="actions"><button class="btn secondary" onclick="'+(accidentStep?'accidentNext(-1)':'go(\'accidents\')')+'">← '+(accidentStep?'Späť':'Zoznam úrazov')+'</button>'+(accidentStep<2?'<button class="btn" onclick="accidentNext(1)">Ďalej →</button>':'')+'</div></div><div class="warning">Pracovná verzia modulu. Vyhľadávanie vybraných kódov ESAW je dostupné podľa priloženej vyhlášky č. 500/2006 Z. z. Kódy zdroja a príčiny úrazu sa vyberajú z číselníkov modulov 7 a 8 vyhlášky č. 500/2006 Z. z.; slovný opis môžeš ďalej spresniť podľa konkrétneho úrazu. Originálne tlačivá sú dostupné nižšie v testovacej verzii. Pred použitím over údaje a podpisy. Pred odoslaním skontroluj údaje a zabezpeč podpisy.</div>'}
-function accidentExport(format){const a=currentAccident(),c=company();if(!a||!c)return;const labels=accidentSections.flatMap(x=>x[1]);const rows=labels.map(([key,label])=>'<tr><th style="text-align:left;width:38%;border:1px solid #aaa;padding:7px">'+esc(label)+'</th><td style="border:1px solid #aaa;padding:7px">'+esc(a[key]||'—')+'</td></tr>').join('');const html='<!doctype html><html lang="sk"><head><meta charset="utf-8"><title>Vyšetrovací hárok – pracovný úraz</title><style>body{font-family:Arial,sans-serif;margin:28px;color:#111}h1{font-size:22px}table{border-collapse:collapse;width:100%;font-size:11px}tr{page-break-inside:avoid}@page{size:A4;margin:15mm}</style></head><body><h1>VYŠETROVACÍ HÁROK PRACOVNÉHO ÚRAZU</h1><p><b>Zamestnávateľ:</b> '+esc(c.name)+'<br><b>Adresa:</b> '+esc(c.address||'')+'<br><b>Pracovisko:</b> '+esc(c.site||'')+'</p><table>'+rows+'</table><p style="margin-top:40px">Podpis zamestnanca: _______________________ &nbsp; Podpis zástupcu zamestnávateľa: _______________________</p><p><small>Pracovný vyšetrovací hárok – nie je náhradou oficiálneho tlačiva ZRPU alebo OPU.</small></p>
-<script id="bozp-contact-card-script">
-(function(){
-  const template=`<div id="bozp-contact-overlay" hidden role="presentation" onclick="if(event.target===this)bozpCloseContactCard()">
-    <section id="bozp-contact-card" role="dialog" aria-modal="true" aria-labelledby="bozp-contact-title" tabindex="-1">
-      <button id="bozp-contact-close" type="button" onclick="bozpCloseContactCard()" aria-label="Zavrieť vizitku">×</button>
-      <img class="contact-logo" src="logo-sidebar.png" alt="Logo Bezpečnostný technik">
-      <h2 id="bozp-contact-title">Ing. Marek Ficeri</h2>
-      <p class="contact-role">Bezpečnostný a požiarny technik</p>
-      <div class="contact-rule"></div>
-      <div class="contact-info"><h3>KONTAKT</h3>
-        <a class="contact-link" href="mailto:mficeri@gmail.com"><span class="contact-symbol" aria-hidden="true">✉</span><span><small>E-mail</small><strong>mficeri@gmail.com</strong></span></a>
-        <a class="contact-link" href="tel:+421907298585"><span class="contact-symbol" aria-hidden="true">☎</span><span><small>Telefón</small><strong>0907 298 585</strong></span></a>
-      </div>
-    </section></div>`;
-  let previousFocus=null;
-  window.bozpOpenContactCard=function(){
-    if(!document.getElementById('bozp-contact-overlay'))document.body.insertAdjacentHTML('beforeend',template);
-    const overlay=document.getElementById('bozp-contact-overlay'); previousFocus=document.activeElement;
-    overlay.hidden=false; document.getElementById('bozp-contact-close').focus();
-  };
-  window.bozpCloseContactCard=function(){const el=document.getElementById('bozp-contact-overlay');if(el)el.hidden=true;if(previousFocus&&previousFocus.isConnected)previousFocus.focus();};
-  document.addEventListener('keydown',function(e){const overlay=document.getElementById('bozp-contact-overlay');if(!overlay||overlay.hidden)return;
-    if(e.key==='Escape'){e.preventDefault();bozpCloseContactCard();return;}
-    if(e.key==='Tab'){const items=Array.from(overlay.querySelectorAll('button,a[href]'));const first=items[0],last=items[items.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}
-  });
-})();
-</script>
-</body></html>';if(format==='print'){const w=window.open('','_blank');if(!w){alert('Povoľ vyskakovacie okná pre tlač.');return}w.document.write(html);w.document.close();w.focus();setTimeout(()=>w.print(),350)}else{const blob=new Blob(['\ufeff',html],{type:'application/msword;charset=utf-8'});const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='Vysetrovaci_harok_'+(a.date||'pracovny_uraz')+'.doc';link.click();setTimeout(()=>URL.revokeObjectURL(url),2000)}}
+function accidentExport(format){const a=currentAccident(),c=company();if(!a||!c)return;const labels=accidentSections.flatMap(x=>x[1]);const rows=labels.map(([key,label])=>'<tr><th style="text-align:left;width:38%;border:1px solid #aaa;padding:7px">'+esc(label)+'</th><td style="border:1px solid #aaa;padding:7px">'+esc(a[key]||'—')+'</td></tr>').join('');const html='<!doctype html><html lang="sk"><head><meta charset="utf-8"><title>Vyšetrovací hárok – pracovný úraz</title><style>body{font-family:Arial,sans-serif;margin:28px;color:#111}h1{font-size:22px}table{border-collapse:collapse;width:100%;font-size:11px}tr{page-break-inside:avoid}@page{size:A4;margin:15mm}</style></head><body><h1>VYŠETROVACÍ HÁROK PRACOVNÉHO ÚRAZU</h1><p><b>Zamestnávateľ:</b> '+esc(c.name)+'<br><b>Adresa:</b> '+esc(c.address||'')+'<br><b>Pracovisko:</b> '+esc(c.site||'')+'</p><table>'+rows+'</table><p style="margin-top:40px">Podpis zamestnanca: _______________________ &nbsp; Podpis zástupcu zamestnávateľa: _______________________</p><p><small>Pracovný vyšetrovací hárok – nie je náhradou oficiálneho tlačiva ZRPU alebo OPU.</small></p></body></html>';if(format==='print'){const w=window.open('','_blank');if(!w){alert('Povoľ vyskakovacie okná pre tlač.');return}w.document.write(html);w.document.close();w.focus();setTimeout(()=>w.print(),350)}else{const blob=new Blob(['\ufeff',html],{type:'application/msword;charset=utf-8'});const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='Vysetrovaci_harok_'+(a.date||'pracovny_uraz')+'.doc';link.click();setTimeout(()=>URL.revokeObjectURL(url),2000)}}
 
 
 /* Pracovné úrazy – rozšírený formulár a samostatné dokumentové náhľady (test). */
@@ -506,7 +478,7 @@ async function freeAddPhoto(e){const files=Array.from(e.target.files||[]);if(!fi
 function freeRemovePhoto(i){const removed=audit().findings[state.index].photos.splice(i,1)[0];save();discardPhotoIfUnused(removed);render()}
 
 Promise.resolve().then(async()=>{await hydratePhotos();await migrateOldPhotos()});
-</script><script>if('serviceWorker' in navigator && (location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('./sw.js').catch(()=>{});</script><style>
+</script><script>if('serviceWorker' in navigator && (location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('./sw.js?v=20261023-2',{updateViaCache:'none'}).catch(()=>{});</script><style>
 #cloudFab{position:fixed;right:16px;bottom:16px;z-index:100;background:#ff4a25;color:white;border:0;border-radius:40px;padding:12px 18px;font-weight:800;box-shadow:0 6px 24px #0005}
 #cloudPanel{display:none;position:fixed;z-index:101;inset:0;background:#071b2acb;align-items:center;justify-content:center;padding:12px}
 #cloudPanel.open{display:flex}#cloudCard{background:white;color:#102942;width:min(480px,100%);max-height:94vh;overflow:auto;padding:24px;border-radius:18px;box-shadow:0 20px 80px #0006}#cloudCard input{width:100%;padding:12px;margin:5px 0 12px;border:1px solid #b5c3d2;border-radius:9px}#cloudCard button{padding:10px 13px;margin:4px;border-radius:8px;border:0;background:#0a3557;color:white}#cloudCard button.warn{background:#a43d24}#cloudCard small{color:#566879}#cloudStatus{white-space:pre-wrap;font-size:13px;padding:9px;background:#eef4fa;border-radius:9px;margin:10px 0} @media print{#cloudFab,#cloudPanel{display:none!important}}
@@ -1780,6 +1752,33 @@ renderAccidentForm=function(){
  if(side){new MutationObserver(()=>{if(!side.contains(el))placeThemeSwitch();}).observe(side,{childList:true});}
  window.addEventListener('resize',placeThemeSwitch,{passive:true});sync();}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+})();
+</script>
+<script id="bozp-contact-card-script">
+(function(){
+  const template=`<div id="bozp-contact-overlay" hidden role="presentation" onclick="if(event.target===this)bozpCloseContactCard()">
+    <section id="bozp-contact-card" role="dialog" aria-modal="true" aria-labelledby="bozp-contact-title" tabindex="-1">
+      <button id="bozp-contact-close" type="button" onclick="bozpCloseContactCard()" aria-label="Zavrieť vizitku">×</button>
+      <img class="contact-logo" src="logo-sidebar.png" alt="Logo Bezpečnostný technik">
+      <h2 id="bozp-contact-title">Ing. Marek Ficeri</h2>
+      <p class="contact-role">Bezpečnostný a požiarny technik</p>
+      <div class="contact-rule"></div>
+      <div class="contact-info"><h3>KONTAKT</h3>
+        <a class="contact-link" href="mailto:mficeri@gmail.com"><span class="contact-symbol" aria-hidden="true">✉</span><span><small>E-mail</small><strong>mficeri@gmail.com</strong></span></a>
+        <a class="contact-link" href="tel:+421907298585"><span class="contact-symbol" aria-hidden="true">☎</span><span><small>Telefón</small><strong>0907 298 585</strong></span></a>
+      </div>
+    </section></div>`;
+  let previousFocus=null;
+  window.bozpOpenContactCard=function(){
+    if(!document.getElementById('bozp-contact-overlay'))document.body.insertAdjacentHTML('beforeend',template);
+    const overlay=document.getElementById('bozp-contact-overlay'); previousFocus=document.activeElement;
+    overlay.hidden=false; document.getElementById('bozp-contact-close').focus();
+  };
+  window.bozpCloseContactCard=function(){const el=document.getElementById('bozp-contact-overlay');if(el)el.hidden=true;if(previousFocus&&previousFocus.isConnected)previousFocus.focus();};
+  document.addEventListener('keydown',function(e){const overlay=document.getElementById('bozp-contact-overlay');if(!overlay||overlay.hidden)return;
+    if(e.key==='Escape'){e.preventDefault();bozpCloseContactCard();return;}
+    if(e.key==='Tab'){const items=Array.from(overlay.querySelectorAll('button,a[href]'));const first=items[0],last=items[items.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}
+  });
 })();
 </script>
 </body></html>

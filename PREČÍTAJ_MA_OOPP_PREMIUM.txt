@@ -1,0 +1,13 @@
+BOZP Audit – Premium OOPP, verzia 24.10.2026
+=================================================
+Kompletný ZIP nahrajte do koreňa GitHub Pages vrátane oopp/assets.
+Zachované sú pôvodné súbory aplikácie a integrácia firiem/profesií.
+NOVÉ: 8 realistických ilustračných šablón pracovníkov, výber vizuálu,
+prémiové responzívne rozhranie, karta profesie a priradené riziká/OOPP.
+UPOZORNENIE: šablóny sú statické ilustrácie, jednotlivé prostriedky
+sa na fotografii nepreobliekajú. Výber OOPP sa zobrazuje ako zoznam
+a označenia. Plne dynamické realistické vrstvy ešte nie sú hotové.
+Ukladanie používa existujúci mechanizmus BOZP Audit, jeho cloudovú
+synchronizáciu je nutné overiť pri reálnom nasadení.
+PDF cez tlač prehliadača; HTML a JSON export.
+Normy a výber vyžadujú odborné overenie pre konkrétne pracovisko.

@@ -1,0 +1,9 @@
+BOZP Audit – OOPP FULL (24.10.2026)
+
+Kompletný ZIP nahraj do GitHub Pages, vrátane priečinka oopp. Pred nasadením urob zálohu aplikácie aj údajov.
+
+Funkcie: firmy z BOZP Audit, profesie, pracoviská, činnosti, riziká, odporúčanie OOPP, presné varianty, muž/žena, spredu/zozadu, tón pleti, dynamická vrstvená SVG postava, pridanie/odobratie OOPP, ukladanie kariet, tlač do PDF, HTML, JSON a editovateľný Word-kompatibilný .doc.
+
+LIMIT: grafika je detailná vektorová ilustrácia, NIE fotorealistická vrstva jednotlivých reálnych produktov. Každý variant normy sa nemusí vizuálne odlišovať. Výstup .doc je editovateľný HTML dokument pre Word, nie natívny .docx.
+
+Pred používaním treba overiť reálne ukladanie/synchronizáciu v tvojej konfigurácii. Odporúčané OOPP vyžadujú odborné posúdenie.

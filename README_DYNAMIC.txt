@@ -1,0 +1,1 @@
+BOZP Audit – dynamické OOPP: muž/žena, pohľad spredu/zozadu, vrstvené SVG s okamžitým pridávaním a odoberaním výstroja. Ilustrácia nie je fotorealistická. Pôvodná aplikácia a prepojenie firiem zostávajú. Nahrajte celý obsah ZIP, pôvodný projekt zálohujte. Výber OOPP podlieha odbornému overeniu.

@@ -1,11 +1,12 @@
-BOZP AUDIT – PREMIUM KARTA A VIZITKA
-
-1. Rozbaľ ZIP.
-2. Do repozitára Croshark/bozp-audit nahraj súbory z priečinka (bez nadradeného priečinka).
-3. Nahraď existujúci index.html, logo-sidebar.png, sw.js a ostatné súbory s rovnakým názvom.
-4. Po Commit changes počkaj na nasadenie Cloudflare Pages.
-5. Otvor aplikáciu a klikni na logo v ľavom menu.
-6. Vizitka má priamo použiteľné odkazy na e-mail a telefonovanie.
-7. Súbor vizitka-nahlad.png je len samostatný obrázok k dispozícii; modal je editovateľný HTML.
-
-Pred nasadením si ulož zálohu, najmä ak máš nezosynchronizované lokálne údaje.
+BOZP Audit – karty OOPP podľa firmy a profesie
+- Pridaná položka Výber OOPP v menu.
+- Firmy sa čítajú z existujúcej databázy BOZP Audit.
+- Novú firmu možno založiť priamo v module.
+- Karty profesií sa ukladajú do db.ooppCards cez pôvodný mechanizmus save() (vrátane existujúcej synchronizácie, ak je aktívna).
+- Uloženú kartu možno opäť otvoriť a upraviť.
+- Karta obsahuje profesiu, pracovisko, činnosti, riziká, typy OOPP a normy.
+- Tlač do PDF cez tlač prehliadača; HTML a JSON export.
+- Vizuál postavy je zatiaľ jednoduchá ilustrácia; fotorealistické vrstvy sa musia pripraviť osobitne.
+- Neprepisujte iba index.html, nahrajte celý obsah ZIP vrátane priečinka oopp.
+- Pred nasadením zálohujte pôvodný ZIP aj dáta aplikácie.
+- Odporúčania OOPP musí overiť kvalifikovaný bezpečnostný technik.

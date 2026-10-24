@@ -270,7 +270,7 @@ function allq(t){return t.sections.flatMap(s=>s.questions.map(q=>({...q,section:
 function closeMobileMenu(){document.getElementById('sidebar').classList.remove('open');document.getElementById('menuoverlay').classList.remove('open');document.body.style.overflow=''}
 function toggleMobileMenu(){const isOpen=document.getElementById('sidebar').classList.toggle('open');document.getElementById('menuoverlay').classList.toggle('open',isOpen);document.body.style.overflow=isOpen?'hidden':''}
 function go(view,c=null,a=null){closeMobileMenu();state.view=view;if(c!==null)state.company=c;if(a!==null)state.audit=a;state.index=0;render();window.scrollTo(0,0)}
-function menu(){let s='<button type="button" class="menuclose" onclick="closeMobileMenu()" aria-label="Zatvoriť menu">×</button><div class="brand"> <img src="logo-sidebar.png" alt="Logo Bezpečnostný technik" class="brandmark"><small>BEZPEČNOSTNÝ TECHNIK</small></div><div class="navhead">PRACOVNÝ PRIESTOR</div><button class="navbtn '+(state.view==='home'?'active':'')+'" onclick="go(\'home\')">▦ &nbsp; Prehľad</button><button class="navbtn" onclick="go(\'library\')">▤ &nbsp; Knižnica auditov</button><button class="navbtn" onclick="go(\'settings\')">⚙ &nbsp; Zálohy a nastavenia</button><div class="navhead">MOJE FIRMY</div>';
+function menu(){let s='<button type="button" class="menuclose" onclick="closeMobileMenu()" aria-label="Zatvoriť menu">×</button><div class="brand"> <img src="logo-sidebar.png" alt="Logo Bezpečnostný technik" class="brandmark"><small>BEZPEČNOSTNÝ TECHNIK</small></div><div class="navhead">PRACOVNÝ PRIESTOR</div><button class="navbtn '+(state.view==='home'?'active':'')+'" onclick="go(\'home\')">▦ &nbsp; Prehľad</button><button class="navbtn" onclick="go(\'library\')">▤ &nbsp; Knižnica auditov</button><button class="navbtn" onclick="go(\'settings\')">⚙ &nbsp; Zálohy a nastavenia</button><button class="navbtn '+(state.view==='oopp'?'active':'')+'" onclick="go(\'oopp\')">🦺 &nbsp; Výber OOPP</button><div class="navhead">MOJE FIRMY</div>';
 for(let c of db.companies)s+='<button class="companybtn '+(state.company===c.id&&state.view==='company'?'active':'')+'" onclick="go(\'company\',\''+c.id+'\')">▣ &nbsp; '+esc(c.name)+'</button>';
 s+='<button class="plus" onclick="go(\'newcompany\')">＋ Pridať firmu</button>';return s}
 const BOZP_TERM_TYPES=['PPP','Cvičný požiarny poplach','Kontrola dokumentácie OPP','Kontrola na alkohol','Školenie – mimopracovný čas','Školenie zamestnancov','Iný termín'];
@@ -283,7 +283,8 @@ function bozpToggleTerm(id){const t=(db.companyEvents||[]).find(t=>t.id===id&&t.
 function bozpDeleteTerm(id){const t=(db.companyEvents||[]).find(t=>t.id===id&&t.companyId===state.company);if(!t||!confirm('Naozaj vymazať termín „'+t.type+'“ zo dňa '+bozpTermDate(t.date)+'?'))return;db.companyEvents=db.companyEvents.filter(e=>e.id!==id);save();render();}
 
 function render(){db.companyEvents=db.companyEvents||[]; $('sidebar').innerHTML=menu();let h='';let c=company(),a=audit();
-if(state.view==='home'){let bad=db.audits.reduce((n,a)=>n+Object.values(a.answers||{}).filter(v=>v.status==='bad').length,0);h='<div class="bozp-hero"><div class="eyebrow">Pracovný priestor</div><div class="title">Prehľad <em>auditov</em></div><div class="muted">Tvoje firmy, audity a nápravné opatrenia na jednom mieste.</div></div><div class="grid bozp-stats"><div class="stat" onclick="document.getElementById(\'bozp-firms\').scrollIntoView({behavior:\'smooth\'})" style="cursor:pointer"><span>FIRMY</span><b>'+db.companies.length+'</b></div><div class="stat"><span>VYKONANÉ / ROZPRACOVANÉ AUDITY</span><b>'+db.audits.length+'</b></div><div class="stat"><span>ZISTENÉ NEDOSTATKY</span><b>'+bad+'</b></div></div><div id="bozp-firms" class="row bozp-home-actions"><div class="sectiontitle">Moje firmy</div><div class="actions"><button class="btn" onclick="go(\'newcompany\')">＋ Nová firma</button><button class="btn secondary" onclick="proStats()">▥ Štatistiky</button><button class="btn secondary" onclick="proList()">☑ Nápravné opatrenia</button></div></div>'+(db.companies.length?'<div class="auditgrid bozp-firm-grid">'+db.companies.map((c,i)=>'<button class="auditcard bozp-firm-card" style="--company-image:url(\'company-'+((i%6)+1)+'.jpg\')" onclick="go(\'company\',\''+c.id+'\')"><span class="bozp-firm-icon">▣</span><span class="bozp-firm-info"><span class="chip">FIRMA</span><strong>'+esc(c.name)+'</strong><small>⌖ '+esc(c.address||'Bez adresy')+' &nbsp; · &nbsp; ▤ '+db.audits.filter(a=>a.companyId===c.id).length+' auditov</small>'+(bozpTermNext(c.id)?'<span class="bozp-upcoming-term">📅 '+esc(bozpTermNext(c.id).type)+' · '+bozpTermDate(bozpTermNext(c.id).date)+'</span>':'')+'</span></button>').join('')+'</div>':'<div class="empty">Zatiaľ nemáš žiadnu firmu. Začni tlačidlom „Nová firma“.</div>');}
+if(state.view==='oopp'){h='<iframe id="ooppFrame" src="./oopp/index.html" title="Výber OOPP" style="display:block;width:100%;height:calc(100dvh - 125px);min-height:760px;border:0;border-radius:14px;background:#f3f6fa"></iframe>';}
+else if(state.view==='home'){let bad=db.audits.reduce((n,a)=>n+Object.values(a.answers||{}).filter(v=>v.status==='bad').length,0);h='<div class="bozp-hero"><div class="eyebrow">Pracovný priestor</div><div class="title">Prehľad <em>auditov</em></div><div class="muted">Tvoje firmy, audity a nápravné opatrenia na jednom mieste.</div></div><div class="grid bozp-stats"><div class="stat" onclick="document.getElementById(\'bozp-firms\').scrollIntoView({behavior:\'smooth\'})" style="cursor:pointer"><span>FIRMY</span><b>'+db.companies.length+'</b></div><div class="stat"><span>VYKONANÉ / ROZPRACOVANÉ AUDITY</span><b>'+db.audits.length+'</b></div><div class="stat"><span>ZISTENÉ NEDOSTATKY</span><b>'+bad+'</b></div></div><div id="bozp-firms" class="row bozp-home-actions"><div class="sectiontitle">Moje firmy</div><div class="actions"><button class="btn" onclick="go(\'newcompany\')">＋ Nová firma</button><button class="btn secondary" onclick="proStats()">▥ Štatistiky</button><button class="btn secondary" onclick="proList()">☑ Nápravné opatrenia</button></div></div>'+(db.companies.length?'<div class="auditgrid bozp-firm-grid">'+db.companies.map((c,i)=>'<button class="auditcard bozp-firm-card" style="--company-image:url(\'company-'+((i%6)+1)+'.jpg\')" onclick="go(\'company\',\''+c.id+'\')"><span class="bozp-firm-icon">▣</span><span class="bozp-firm-info"><span class="chip">FIRMA</span><strong>'+esc(c.name)+'</strong><small>⌖ '+esc(c.address||'Bez adresy')+' &nbsp; · &nbsp; ▤ '+db.audits.filter(a=>a.companyId===c.id).length+' auditov</small>'+(bozpTermNext(c.id)?'<span class="bozp-upcoming-term">📅 '+esc(bozpTermNext(c.id).type)+' · '+bozpTermDate(bozpTermNext(c.id).date)+'</span>':'')+'</span></button>').join('')+'</div>':'<div class="empty">Zatiaľ nemáš žiadnu firmu. Začni tlačidlom „Nová firma“.</div>');}
 if(state.view==='newcompany')h='<div class="eyebrow">Evidencia klientov</div><div class="title">Nová firma</div><div class="panel" style="max-width:650px"><form onsubmit="createCompany(event)"><div class="field"><label>Názov spoločnosti *</label><input id="cname" required placeholder="Napr. ABC Slovakia, s.r.o."></div><div class="field"><label>Prevádzka / pracovisko</label><input id="csite" placeholder="Výrobná hala, sklad..."></div><div class="field"><label>Adresa</label><input id="caddr"></div><div class="field"><label>Kontaktná osoba</label><input id="ccontact"></div><button class="btn">Uložiť firmu</button></form></div>';
 if(state.view==='company'&&c){let audits=db.audits.filter(a=>a.companyId===c.id);h='<div class="eyebrow">Karta firmy</div><div class="title">'+esc(c.name)+'</div><div class="muted">'+esc(c.site||'')+' · '+esc(c.address||'')+'</div><div class="actions" style="margin-top:20px"><button class="btn" onclick="go(\'choose\')">＋ Spustiť nový audit</button><button class="btn secondary" onclick="go(\'accidents\')">⚕ Pracovné úrazy</button><button class="btn secondary" onclick="editCompany()">Upraviť firmu</button></div><div class="sectiontitle">Audity spoločnosti</div>'+(audits.length?'<div class="auditgrid">'+audits.map(a=>{let t=findT(a.templateId),q=t?allq(t):[],count=Object.values(a.answers||{}).filter(x=>x.status).length;return '<button class="auditcard" onclick="go(\'audit\',null,\''+a.id+'\')"><span class="chip">'+count+'/'+q.length+' otázok</span><strong>'+esc(a.templateName)+'</strong><small>'+esc(a.date)+' · '+esc(a.auditor||'Audítor neuvedený')+'</small><div class="progress"><div style="width:'+(q.length?count/q.length*100:0)+'%"></div></div></button>'}).join('')+'</div>':'<div class="empty">Pre túto firmu zatiaľ neexistuje audit.</div>');h+=bozpTermBlock(c.id);}
 if(state.view==='accidents'&&c){let items=(db.accidents||[]).filter(x=>x.companyId===c.id).sort((a,b)=>(b.created||'').localeCompare(a.created||''));h='<div class="eyebrow">'+esc(c.name)+'</div><div class="title">Pracovné úrazy</div><div class="muted">Samostatná evidencia úrazov spoločnosti. Existujúce audity zostávajú nedotknuté.</div><div class="actions" style="margin:20px 0"><button class="btn" onclick="newAccident()">＋ Nový pracovný úraz</button><button class="btn secondary" onclick="go(\'company\')">Späť na firmu</button></div>'+(items.length?'<div class="panel">'+items.map(x=>'<div class="listrow row"><div><strong>'+esc(x.employee||'Bez mena')+'</strong><div class="smalltext muted">'+esc(x.date||'Bez dátumu')+' · '+esc(x.place||'Bez miesta')+' · '+esc(x.status||'Rozpracované')+'</div></div><div class="actions"><button class="btn small" onclick="openAccident(\''+x.id+'\')">Otvoriť spis →</button><button class="btn small danger" onclick="deleteAccident(\''+x.id+'\')" aria-label="Vymazať pracovný úraz">🗑 Vymazať</button></div></div>').join('')+'</div>':'<div class="empty">Zatiaľ nie je evidovaný žiadny pracovný úraz.</div>');}
@@ -1725,28 +1726,26 @@ renderAccidentForm=function(){
 })();
 </script>
 
-<style id="bozp-oopp-integration-style">
-.bozp-oopp-wrap{margin:-12px -14px 0}
-.bozp-oopp-frame{display:block;width:100%;height:calc(100vh - 145px);min-height:850px;border:1px solid #244765;border-radius:16px;background:#f3f6fa}
-@media(max-width:760px){.bozp-oopp-wrap{margin:-12px -16px}.bozp-oopp-frame{height:calc(100dvh - 95px);min-height:690px;border:0;border-radius:0}}
-</style>
-<script id="bozp-oopp-integration">
-(function(){
-  const previousMenu=menu;
-  menu=function(){
-    return previousMenu().replace('<div class="navhead">MOJE FIRMY</div>',
-      '<button type="button" class="navbtn '+(state.view==='oopp'?'active':'')+'" onclick="go(&quot;oopp&quot;)">🦺 &nbsp; Inteligentný výber OOPP</button><div class="navhead">MOJE FIRMY</div>');
-  };
-  const previousRender=render;
-  render=function(){
-    previousRender();
-    if(state.view==='oopp'){
-      const content=document.getElementById('content');
-      if(content){
-        content.innerHTML='<div class="bozp-oopp-wrap"><iframe class="bozp-oopp-frame" title="Inteligentný výber osobných ochranných pracovných prostriedkov" src="oopp/index.html" loading="eager"></iframe></div>';
-      }
-    }
-  };
-})();
+<script id="oopp-integration">
+window.addEventListener('message',function(e){
+ if(e.origin!==location.origin||e.data?.source!=='BOZP_OOPP')return;
+ const f=document.getElementById('ooppFrame');
+ if(!f||e.source!==f.contentWindow)return;
+ db.ooppCards=db.ooppCards||[];
+ const respond=(type)=>f.contentWindow.postMessage({source:'BOZP_PARENT',type,companies:db.companies.map(x=>({id:x.id,name:x.name})),cards:db.ooppCards},location.origin);
+ if(e.data.type==='init')respond('data');
+ if(e.data.type==='newCompany'){
+  const name=prompt('Názov novej firmy');if(!name?.trim())return;
+  const c={id:uid(),name:name.trim(),site:'',address:'',contact:''};
+  db.companies.push(c);save();respond('data');render();
+ }
+ if(e.data.type==='save'){
+  const c=e.data.card;
+  if(!c||!db.companies.some(x=>x.id===c.companyId)||!Array.isArray(c.items))return;
+  const i=db.ooppCards.findIndex(x=>x.id===c.id);
+  if(i>=0)db.ooppCards[i]=c;else db.ooppCards.push(c);
+  save();respond('saved');respond('data');
+ }
+});
 </script>
 </body></html>

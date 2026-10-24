@@ -340,32 +340,7 @@ function accidentCodeSearch(key,term){const box=document.getElementById('acresul
 function accidentTogglePicker(key){const el=document.getElementById('acpicker_'+key);if(!el)return;el.hidden=!el.hidden;if(!el.hidden){accidentCodeSearch(key,'');document.getElementById('acsearch_'+key)?.focus()}}
 function accidentField(key,label,type){const a=currentAccident()||{},value=esc(a[key]||'');let control=type==='textarea'?'<textarea id="ai_'+key+'" oninput="accidentSet(\''+key+'\',this.value)">'+value+'</textarea>':(RPU_MAX_DIGITS[key]?'<input id="ai_'+key+'" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="'+RPU_MAX_DIGITS[key]+'" title="Najviac '+RPU_MAX_DIGITS[key]+' číslic podľa políčok RPU" value="'+esc(accidentNumericClean(key,a[key]||''))+'" oninput="accidentLimitedInput(this,\''+key+'\')">':'<input id="ai_'+key+'" type="'+(type||'text')+'" value="'+value+'" oninput="accidentSet(\''+key+'\',this.value)">');if(accidentCodeLists[key]){const a=currentAccident()||{};const code=String(a[key]||'');return '<div class="field"><label for="ai_'+key+'">'+esc(label)+'</label><div class="ac-code-row"><input id="ai_'+key+'" value="'+esc(code)+'" readonly placeholder="Vyber kód z číselníka"><button type="button" class="btn secondary small" onclick="accidentTogglePicker(\''+key+'\')">🔎 Hľadať</button></div><div id="acsummary_'+key+'" class="smalltext muted" style="margin-top:5px">'+esc(accidentCodeLabel(key,code))+'</div><div id="acpicker_'+key+'" class="ac-picker" hidden><input id="acsearch_'+key+'" class="search" placeholder="Zadaj názov alebo kód..." oninput="accidentCodeSearch(\''+key+'\',this.value)"><div id="acresults_'+key+'" class="ac-results"></div></div></div>'}return '<div class="field"><label for="ai_'+key+'">'+esc(label)+'</label>'+control+'</div>'}
 function renderAccidentForm(){const a=currentAccident();if(!a)return '<div class="empty">Záznam sa nenašiel.</div>';const sec=accidentSections[accidentStep];let fields=sec[1].map(x=>accidentField(...x)).join('');return '<div class="eyebrow">'+esc(company()?.name||'')+' / Pracovný úraz</div><div class="row" style="flex-wrap:wrap"><div class="title">Vyšetrovací hárok</div><button type="button" class="btn small danger" onclick="deleteAccident(accidentId)">🗑 Vymazať tento úraz</button></div><div class="muted">'+esc(a.employee||'Nový záznam')+' · priebežné ukladanie · krok '+(accidentStep+1)+' z '+accidentSections.length+'</div><div class="progress"><div style="width:'+((accidentStep+1)/accidentSections.length*100)+'%"></div></div><div class="panel"><h3>'+esc(sec[0])+'</h3><div class="accident-fields">'+fields+'</div><div class="actions"><button class="btn secondary" onclick="'+(accidentStep?'accidentNext(-1)':'go(\'accidents\')')+'">← '+(accidentStep?'Späť':'Zoznam úrazov')+'</button>'+(accidentStep<2?'<button class="btn" onclick="accidentNext(1)">Ďalej →</button>':'')+'</div></div><div class="warning">Pracovná verzia modulu. Vyhľadávanie vybraných kódov ESAW je dostupné podľa priloženej vyhlášky č. 500/2006 Z. z. Kódy zdroja a príčiny úrazu sa vyberajú z číselníkov modulov 7 a 8 vyhlášky č. 500/2006 Z. z.; slovný opis môžeš ďalej spresniť podľa konkrétneho úrazu. Originálne tlačivá sú dostupné nižšie v testovacej verzii. Pred použitím over údaje a podpisy. Pred odoslaním skontroluj údaje a zabezpeč podpisy.</div>'}
-function accidentExport(format){const a=currentAccident(),c=company();if(!a||!c)return;const labels=accidentSections.flatMap(x=>x[1]);const rows=labels.map(([key,label])=>'<tr><th style="text-align:left;width:38%;border:1px solid #aaa;padding:7px">'+esc(label)+'</th><td style="border:1px solid #aaa;padding:7px">'+esc(a[key]||'—')+'</td></tr>').join('');const html='<!doctype html><html lang="sk"><head><meta charset="utf-8"><title>Vyšetrovací hárok – pracovný úraz</title><style>body{font-family:Arial,sans-serif;margin:28px;color:#111}h1{font-size:22px}table{border-collapse:collapse;width:100%;font-size:11px}tr{page-break-inside:avoid}@page{size:A4;margin:15mm}</style></head><body><h1>VYŠETROVACÍ HÁROK PRACOVNÉHO ÚRAZU</h1><p><b>Zamestnávateľ:</b> '+esc(c.name)+'<br><b>Adresa:</b> '+esc(c.address||'')+'<br><b>Pracovisko:</b> '+esc(c.site||'')+'</p><table>'+rows+'</table><p style="margin-top:40px">Podpis zamestnanca: _______________________ &nbsp; Podpis zástupcu zamestnávateľa: _______________________</p><p><small>Pracovný vyšetrovací hárok – nie je náhradou oficiálneho tlačiva ZRPU alebo OPU.</small></p>
-<style id="bozp-oopp-integration-style">
-.bozp-oopp-wrap{margin:-12px -14px 0}
-.bozp-oopp-frame{display:block;width:100%;height:calc(100vh - 145px);min-height:850px;border:1px solid #244765;border-radius:16px;background:#f3f6fa}
-@media(max-width:760px){.bozp-oopp-wrap{margin:-12px -16px}.bozp-oopp-frame{height:calc(100dvh - 95px);min-height:690px;border:0;border-radius:0}}
-</style>
-<script id="bozp-oopp-integration">
-(function(){
-  const previousMenu=menu;
-  menu=function(){
-    return previousMenu().replace('<div class="navhead">MOJE FIRMY</div>',
-      '<button type="button" class="navbtn '+(state.view==='oopp'?'active':'')+'" onclick="go(\'oopp\')">🦺 &nbsp; Inteligentný výber OOPP</button><div class="navhead">MOJE FIRMY</div>');
-  };
-  const previousRender=render;
-  render=function(){
-    previousRender();
-    if(state.view==='oopp'){
-      const content=document.getElementById('content');
-      if(content){
-        content.innerHTML='<div class="bozp-oopp-wrap"><iframe class="bozp-oopp-frame" title="Inteligentný výber osobných ochranných pracovných prostriedkov" src="oopp/index.html" loading="eager"></iframe></div>';
-      }
-    }
-  };
-})();
-</script>
-</body></html>';if(format==='print'){const w=window.open('','_blank');if(!w){alert('Povoľ vyskakovacie okná pre tlač.');return}w.document.write(html);w.document.close();w.focus();setTimeout(()=>w.print(),350)}else{const blob=new Blob(['\ufeff',html],{type:'application/msword;charset=utf-8'});const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='Vysetrovaci_harok_'+(a.date||'pracovny_uraz')+'.doc';link.click();setTimeout(()=>URL.revokeObjectURL(url),2000)}}
+function accidentExport(format){const a=currentAccident(),c=company();if(!a||!c)return;const labels=accidentSections.flatMap(x=>x[1]);const rows=labels.map(([key,label])=>'<tr><th style="text-align:left;width:38%;border:1px solid #aaa;padding:7px">'+esc(label)+'</th><td style="border:1px solid #aaa;padding:7px">'+esc(a[key]||'—')+'</td></tr>').join('');const html='<!doctype html><html lang="sk"><head><meta charset="utf-8"><title>Vyšetrovací hárok – pracovný úraz</title><style>body{font-family:Arial,sans-serif;margin:28px;color:#111}h1{font-size:22px}table{border-collapse:collapse;width:100%;font-size:11px}tr{page-break-inside:avoid}@page{size:A4;margin:15mm}</style></head><body><h1>VYŠETROVACÍ HÁROK PRACOVNÉHO ÚRAZU</h1><p><b>Zamestnávateľ:</b> '+esc(c.name)+'<br><b>Adresa:</b> '+esc(c.address||'')+'<br><b>Pracovisko:</b> '+esc(c.site||'')+'</p><table>'+rows+'</table><p style="margin-top:40px">Podpis zamestnanca: _______________________ &nbsp; Podpis zástupcu zamestnávateľa: _______________________</p><p><small>Pracovný vyšetrovací hárok – nie je náhradou oficiálneho tlačiva ZRPU alebo OPU.</small></p></body></html>';if(format==='print'){const w=window.open('','_blank');if(!w){alert('Povoľ vyskakovacie okná pre tlač.');return}w.document.write(html);w.document.close();w.focus();setTimeout(()=>w.print(),350)}else{const blob=new Blob(['\ufeff',html],{type:'application/msword;charset=utf-8'});const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='Vysetrovaci_harok_'+(a.date||'pracovny_uraz')+'.doc';link.click();setTimeout(()=>URL.revokeObjectURL(url),2000)}}
 
 
 /* Pracovné úrazy – rozšírený formulár a samostatné dokumentové náhľady (test). */
@@ -427,32 +402,7 @@ function accidentDocument(kind,format){
  }else return;
  const missing=accidentReadiness();
  const notice='<p class="notice"><b>PRACOVNÝ NÁVRH – NIE JE OFICIÁLNE TLAČIVO.</b> Dokument obsahuje údaje z vyšetrovacieho hárku, ale nezachováva presnú grafickú predlohu úradu. Pred podaním prenes údaje do platného úradného formulára a over podpisy.</p>';
- const html='<!doctype html><html lang="sk"><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>@page{size:A4;margin:16mm}body{font:11pt Arial,sans-serif;color:#18232e;margin:22px auto;max-width:850px}h1{font-size:20pt}h2{font-size:13pt;background:#e9f0f6;padding:7px;margin-top:20px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #9caab5;padding:8px;vertical-align:top;white-space:pre-wrap;overflow-wrap:anywhere}th{width:38%;text-align:left;background:#f6f8fa}.notice{border:2px solid #c97729;background:#fff9ed;padding:12px}.signature{display:inline-block;width:46%;vertical-align:top;margin:28px 2% 15px 0}.line{border-top:1px solid #333;margin-top:46px;font-size:9pt;padding-top:6px}@media print{body{margin:0}.notice{color:#333}tr{break-inside:avoid}h2{break-after:avoid}}</style></head><body><h1>'+esc(title)+'</h1>'+notice+(missing.length?'<p><b>Chýbajúce údaje:</b> '+esc(missing.join(', '))+'</p>':'')+body+'
-<style id="bozp-oopp-integration-style">
-.bozp-oopp-wrap{margin:-12px -14px 0}
-.bozp-oopp-frame{display:block;width:100%;height:calc(100vh - 145px);min-height:850px;border:1px solid #244765;border-radius:16px;background:#f3f6fa}
-@media(max-width:760px){.bozp-oopp-wrap{margin:-12px -16px}.bozp-oopp-frame{height:calc(100dvh - 95px);min-height:690px;border:0;border-radius:0}}
-</style>
-<script id="bozp-oopp-integration">
-(function(){
-  const previousMenu=menu;
-  menu=function(){
-    return previousMenu().replace('<div class="navhead">MOJE FIRMY</div>',
-      '<button type="button" class="navbtn '+(state.view==='oopp'?'active':'')+'" onclick="go(\'oopp\')">🦺 &nbsp; Inteligentný výber OOPP</button><div class="navhead">MOJE FIRMY</div>');
-  };
-  const previousRender=render;
-  render=function(){
-    previousRender();
-    if(state.view==='oopp'){
-      const content=document.getElementById('content');
-      if(content){
-        content.innerHTML='<div class="bozp-oopp-wrap"><iframe class="bozp-oopp-frame" title="Inteligentný výber osobných ochranných pracovných prostriedkov" src="oopp/index.html" loading="eager"></iframe></div>';
-      }
-    }
-  };
-})();
-</script>
-</body></html>';
+ const html='<!doctype html><html lang="sk"><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>@page{size:A4;margin:16mm}body{font:11pt Arial,sans-serif;color:#18232e;margin:22px auto;max-width:850px}h1{font-size:20pt}h2{font-size:13pt;background:#e9f0f6;padding:7px;margin-top:20px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #9caab5;padding:8px;vertical-align:top;white-space:pre-wrap;overflow-wrap:anywhere}th{width:38%;text-align:left;background:#f6f8fa}.notice{border:2px solid #c97729;background:#fff9ed;padding:12px}.signature{display:inline-block;width:46%;vertical-align:top;margin:28px 2% 15px 0}.line{border-top:1px solid #333;margin-top:46px;font-size:9pt;padding-top:6px}@media print{body{margin:0}.notice{color:#333}tr{break-inside:avoid}h2{break-after:avoid}}</style></head><body><h1>'+esc(title)+'</h1>'+notice+(missing.length?'<p><b>Chýbajúce údaje:</b> '+esc(missing.join(', '))+'</p>':'')+body+'</body></html>';
  if(format==='print'){
   const w=window.open('','_blank');if(!w){alert('Povoľ vyskakovacie okná.');return}w.document.write(html);w.document.close();w.focus();setTimeout(()=>w.print(),400);
  }else{
@@ -1785,7 +1735,7 @@ renderAccidentForm=function(){
   const previousMenu=menu;
   menu=function(){
     return previousMenu().replace('<div class="navhead">MOJE FIRMY</div>',
-      '<button type="button" class="navbtn '+(state.view==='oopp'?'active':'')+'" onclick="go(\'oopp\')">🦺 &nbsp; Inteligentný výber OOPP</button><div class="navhead">MOJE FIRMY</div>');
+      '<button type="button" class="navbtn '+(state.view==='oopp'?'active':'')+'" onclick="go(&quot;oopp&quot;)">🦺 &nbsp; Inteligentný výber OOPP</button><div class="navhead">MOJE FIRMY</div>');
   };
   const previousRender=render;
   render=function(){

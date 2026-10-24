@@ -1,0 +1,11 @@
+BOZP Audit – integrácia modulu Inteligentný výber OOPP
+=====================================================
+- Pôvodná aplikácia, fotografie, ikony a nastavenia zostali zachované.
+- V ľavom menu pribudla položka Inteligentný výber OOPP.
+- Modul beží vo vnútri pôvodnej aplikácie na adrese oopp/index.html.
+- Pripravené na nahratie celého obsahu ZIP do koreňa GitHub Pages.
+- Všetky súbory nahrajte aj s priečinkom oopp; neprepisujte len index.html.
+- Dáta výberu OOPP sa zatiaľ ukladajú lokálne do prehliadača, nie do Supabase.
+- PDF export funguje cez tlač prehliadača; HTML a JSON sú podporované.
+- Kategórie OOPP a normy sú orientačné; finálny výber musí posúdiť odborník.
+- Pôvodný ZIP ponechajte ako zálohu.
